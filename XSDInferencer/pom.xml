@@ -15,6 +15,7 @@
       </testResource>
     </testResources>
     <plugins>
+      <!-- Configure compiler to use Java 7 version -->
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.1</version>
@@ -22,6 +23,111 @@
           <source>1.7</source>
           <target>1.7</target>
         </configuration>
+      </plugin>
+      <!-- Automatically copy dependencies (so that classpath becomes set up correctly) -->
+      <!-- IMPORTANT REMARK: m2ee (Maven Eclipse integration) does not support this. -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.8</version>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/lib</outputDirectory>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>false</overWriteSnapshots>
+              <overWriteIfNewer>true</overWriteIfNewer>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Generated JAR configuration -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.4</version>
+        <configuration>
+          <archive>
+            <manifest>
+            	<addClasspath>true</addClasspath>
+            	<classpathPrefix>lib/</classpathPrefix>
+            	<mainClass>es.upm.dit.xsdinferencer.XSDInferencer</mainClass>
+            	<packageName>es.upm.dit.xsdinferencer</packageName>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <!-- Script packaging -->
+      <!-- 
+      It uses a plugin to search a token into run scripts and replace it with the current version,
+      so that it matches with the one present at the name of the JAR. 
+      -->
+      <!--
+      There is a separated execution per file because of a bug at the replacer plugin, which prevents it 
+      from handling Windows file paths well while working with multiple files.
+       -->
+      <plugin>
+           <groupId>com.google.code.maven-replacer-plugin</groupId>
+           <artifactId>replacer</artifactId>
+           <version>1.5.2</version>
+           <executions>
+               <execution>
+               	   <id>bat-Replacement</id>
+                   <phase>package</phase>
+                   <goals>
+                       <goal>replace</goal>
+                   </goals>   
+                   <configuration>
+		               <file>${project.build.scriptSourceDirectory}/XSDInferencer.bat</file>
+				       <outputFile>${project.build.directory}/XSDInferencer.bat</outputFile>
+		               <replacements>
+		                   <replacement>
+		                       <token>JAR_VERSION</token>
+		                       <value>${project.version}</value>
+		                   </replacement>         
+		               </replacements>
+		          	</configuration>                
+               </execution>
+               <execution>
+               	   <id>sh-replacement</id>
+                   <phase>package</phase>
+                   <goals>
+                       <goal>replace</goal>
+                   </goals>   
+                   <configuration>
+		               <file>${project.build.scriptSourceDirectory}/XSDInferencer.sh</file>
+				       <outputFile>${project.build.directory}/XSDInferencer.sh</outputFile>
+		               <replacements>
+		                   <replacement>
+		                       <token>JAR_VERSION</token>
+		                       <value>${project.version}</value>
+		                   </replacement>         
+		               </replacements>
+		          	</configuration>                
+               </execution>
+           </executions>
+       </plugin>
+       <!-- Assembly plugin, to generate zip files. -->
+       <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>2.4</version>
+        <configuration>
+          <descriptor>src/main/assembly/dist.xml</descriptor>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id> <!-- this is used for inheritance merges -->
+            <phase>package</phase> <!-- bind to the packaging phase -->
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
@@ -57,4 +163,8 @@
   <properties>
   	<project.build.sourceEncoding>cp1252</project.build.sourceEncoding>
   </properties>
+  <organization>
+  	<name>Center for Open Middleware - UPM</name>
+  	<url>http://www.centeropenmiddleware.com/</url>
+  </organization>
 </project>
