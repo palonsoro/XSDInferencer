@@ -526,20 +526,34 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 		}
 		else if(isMultipleRegularExpression){
 			String elementName;
-			if(regexp instanceof All)
+			if(regexp instanceof All){
 				elementName="all";
-			else if(regexp instanceof Choice)
+				All regexpAsAll = (All) regexp;
+			}
+			else if(regexp instanceof Choice){
 				elementName="choice";
-			else if(regexp instanceof Sequence)
+			}
+			else if(regexp instanceof Sequence){
 				elementName="sequence";
-			else 
+			}
+			else{ 
 				throw new IllegalArgumentException("Unknown kind of MultipleRegularExpression: "+regexp);
+			}
 			Element currentElement = new Element(elementName,xsdNamespace);
 			for(int i=0;i<regexp.elementCount();i++){
 				Element currentElementChild = generateRegexpRepresentation(regexp.getElement(i), configuration, targetNamespace, mainNamespace, complexType, namespaceURIToPrefixMappings, xsdNamespace);
-				if(currentElementChild!=null)
+				if(regexp instanceof All && currentElementChild!=null){
+					All regexpAsAll = (All) regexp;
+					if(regexpAsAll.getMinOccurs()==0){
+						Attribute minOccursAttribute = new Attribute("minOccurs", "0");
+						currentElementChild.setAttribute(minOccursAttribute);
+					}
+				}
+				if(currentElementChild!=null){
 					currentElement.addContent(currentElementChild);
+				}
 			}
+			
 			return currentElement;
 		}
 		else if(isSingularRegularExpression){
