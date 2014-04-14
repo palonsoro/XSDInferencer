@@ -528,7 +528,6 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 			String elementName;
 			if(regexp instanceof All){
 				elementName="all";
-				All regexpAsAll = (All) regexp;
 			}
 			else if(regexp instanceof Choice){
 				elementName="choice";
