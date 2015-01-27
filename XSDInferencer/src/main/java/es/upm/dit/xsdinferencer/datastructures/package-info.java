@@ -19,6 +19,9 @@ limitations under the License.
  * inference information by means of the other classes of this package. It also contains 
  * a {@link es.upm.dit.xsdinferencer.statistics.Statistics} object, which contains the statistics 
  * information (for more information, see {@link es.upm.xsdinferencer.statistics}).
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
+ * 
  * @see es.upm.xsdinferencer.statistics
  */
 package es.upm.dit.xsdinferencer.datastructures;

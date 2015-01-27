@@ -19,5 +19,7 @@ limitations under the License.
  * will act as entry point.
  * If the solution is used as a JAR library as a part of another Java application, this package contains 
  * all the classes which should be imported to start a complete inference process and get its results.
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer;

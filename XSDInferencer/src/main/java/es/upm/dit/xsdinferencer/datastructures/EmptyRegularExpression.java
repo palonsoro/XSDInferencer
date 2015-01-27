@@ -105,4 +105,5 @@ public class EmptyRegularExpression implements RegularExpression {
 	public void setElement(int index, RegularExpression element) {
 		throw new UnsupportedOperationException();
 	}
+
 }

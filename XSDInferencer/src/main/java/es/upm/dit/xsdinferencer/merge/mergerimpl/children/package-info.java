@@ -15,5 +15,7 @@ limitations under the License.
 */
 /**
  * Provides the implementations of the children pattern comparators.
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer.merge.mergerimpl.children;

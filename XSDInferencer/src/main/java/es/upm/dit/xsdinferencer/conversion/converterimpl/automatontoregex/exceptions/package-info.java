@@ -15,5 +15,7 @@ limitations under the License.
 */
 /**
  * Provides exceptions related to the automaton to regex conversion submodule of the conversion module.
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer.conversion.converterimpl.automatontoregex.exceptions;

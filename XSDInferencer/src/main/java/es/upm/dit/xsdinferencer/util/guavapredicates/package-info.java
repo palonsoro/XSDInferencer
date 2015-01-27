@@ -16,5 +16,7 @@ limitations under the License.
 /**
  * Provides Guava {@link com.google.common.base.Predicate} implementations, 
  * which may be useful in many situations.
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer.util.guavapredicates;

@@ -16,5 +16,7 @@ limitations under the License.
 /**
  * Provides an auxiliary module to generate XSD file names based on the namespace prefixes 
  * used on them.
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer.util.xsdfilenaming;

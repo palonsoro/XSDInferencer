@@ -24,6 +24,7 @@ import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,19 +34,26 @@ import java.util.Map;
 import org.jdom2.Document;
 import org.jdom2.JDOMException;
 import org.jdom2.input.SAXBuilder;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Joiner;
 
 import es.upm.dit.xsdinferencer.conversion.TypeConverter;
 import es.upm.dit.xsdinferencer.conversion.converterimpl.TypeConverterImpl;
 import es.upm.dit.xsdinferencer.datastructures.Schema;
+import es.upm.dit.xsdinferencer.exceptions.InvalidXSDConfigurationParameterException;
 import es.upm.dit.xsdinferencer.exceptions.XSDConfigurationException;
+import es.upm.dit.xsdinferencer.exceptions.XSDInferencerException;
 import es.upm.dit.xsdinferencer.extraction.TypesExtractor;
+import es.upm.dit.xsdinferencer.extraction.extractorImpl.JSONTypesExtractorImpl;
 import es.upm.dit.xsdinferencer.extraction.extractorImpl.TypesExtractorImpl;
 import es.upm.dit.xsdinferencer.generation.ResultsGenerator;
 import es.upm.dit.xsdinferencer.generation.generatorimpl.ResultsGeneratorImpl;
+import es.upm.dit.xsdinferencer.generation.generatorimpl.schemageneration.SchemaDocumentGeneratorFactory;
 import es.upm.dit.xsdinferencer.generation.generatorimpl.statisticsgeneration.StatisticResultsDocGeneratorFactory;
-import es.upm.dit.xsdinferencer.generation.generatorimpl.xsdgeneration.XSDDocumentGeneratorFactory;
 import es.upm.dit.xsdinferencer.merge.TypeMerger;
 import es.upm.dit.xsdinferencer.merge.mergerimpl.TypeMergerImpl;
 import es.upm.dit.xsdinferencer.util.xsdfilenaming.XSDFileNameGeneratorDefaultImpl;
@@ -53,6 +61,7 @@ import es.upm.dit.xsdinferencer.util.xsdfilenaming.XSDFileNameGeneratorDefaultIm
 /**
  * Main class of the XSD inferencer. It may be called from the command line via {@link XSDInferencer#main(String[])} 
  * or used as entry point to the library
+ * 
  * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  *
  */
@@ -105,6 +114,10 @@ public class XSDInferencer {
 			"                                                            given properties file. However, concrete configuration \r\n" + 
 			"                                                            values may be overwritten via the following command \r\n" + 
 			"                                                            line parameters.\r\n" + 
+			"[--workingFormat {xml|json}]                                If 'xml' value is provided, the inferencer will read XML files to \r\n" +
+			"                                                            infer XSDs from them. If 'json' is provided, JSON files will be read to \r\n" + 
+			"                                                            infer a JSON Schema file from them. No more values are allowed. \r\n" + 
+			"															 Default value: xml.\r\n" +
 			"[--mainNamespace namespace]                                 The specified namespace will be forced to be the main namespace \r\n" + 
 			"                                                            of the inference process. It must exist in the input documents.\r\n" + 
 			"[--skipNamespace namespace] [--skipNamespace namespace2...] The specified namespace will be skipped. This parameter \r\n" + 
@@ -193,6 +206,21 @@ public class XSDInferencer {
 	};
 	
 	/**
+	 * A {@link FilenameFilter} that filters all the files with .json extension (case insensitive).
+	 */
+	private static final FilenameFilter FILE_NAME_FILTER_JSON_EXTENSION = new FilenameFilter() {
+		
+		@Override
+		public boolean accept(File dir, String name) {
+			if(name.toLowerCase().endsWith(".json")){
+				return true;
+			}else{
+				return false;
+			}
+		}
+	};
+	
+	/**
 	 * Method that, given a list of input documents represented as JDOM2 {@link Document} objects and an 
 	 * inference configuration, does the whole inference process by calling the appropriate submodules.
 	 * @param xmlFiles A list of {@link Document} object with the input documents
@@ -200,7 +228,7 @@ public class XSDInferencer {
 	 * @return a {@link Results} object with the inference results (both statistics and XSDs)
 	 * @throws XSDConfigurationException if there is a problem with the configuration
 	 */
-	public Results inferXSD(List<Document> xmlFiles, XSDInferenceConfiguration configuration) throws XSDConfigurationException {
+	public Results inferSchema(List<Document> xmlFiles, XSDInferenceConfiguration configuration) throws XSDInferencerException {
 		long startTime = System.currentTimeMillis();
 		System.out.println("Starting inference process of "+xmlFiles.size()+" files");
 		TypesExtractor extractor = new TypesExtractorImpl(xmlFiles, configuration);
@@ -222,8 +250,8 @@ public class XSDInferencer {
 		long convertedElapsedTime = convertedTime-mergedTime;
 		System.out.println("Automatons converted and optimized in "+convertedElapsedTime+"ms");
 		System.out.println("Generating results...");
-		ResultsGenerator generator = new ResultsGeneratorImpl();
-		Results results = generator.generateResults(schema, configuration, XSDDocumentGeneratorFactory.getInstance(), StatisticResultsDocGeneratorFactory.getInstance(), new XSDFileNameGeneratorDefaultImpl());
+		ResultsGenerator generator = new ResultsGeneratorImpl(SchemaDocumentGeneratorFactory.getInstance(), StatisticResultsDocGeneratorFactory.getInstance(), new XSDFileNameGeneratorDefaultImpl());
+		Results results = generator.generateResults(schema, configuration);
 		long generatedTime = System.currentTimeMillis();
 		long generatedElapsedTime=generatedTime-convertedTime;
 		System.out.println("Results generated in "+generatedElapsedTime+"ms");
@@ -236,13 +264,58 @@ public class XSDInferencer {
 	}
 	
 	/**
-	 * Method that, given the input args lists, returns a {@link List} of {@link File} object that represent the input XML files
+	 * Method that, given a list of input documents represented as JDOM2 {@link Document} objects and an 
+	 * inference configuration, does the whole inference process by calling the appropriate submodules.
+	 * @param xmlFiles A list of {@link Document} object with the input documents
+	 * @param configuration the inference configuration
+	 * @return a {@link Results} object with the inference results (both statistics and XSDs)
+	 * @throws XSDConfigurationException if there is a problem with the configuration
+	 */
+	public Results inferSchema(List<JSONObject> jsonDocumentWithRootObjects, List<JSONArray> jsonDocumentWithRootArrays, XSDInferenceConfiguration configuration) throws XSDInferencerException {
+		int size = jsonDocumentWithRootArrays.size()+jsonDocumentWithRootObjects.size();
+		long startTime = System.currentTimeMillis();
+		System.out.println("Starting inference process of "+size+" files");
+		TypesExtractor extractor = new JSONTypesExtractorImpl(jsonDocumentWithRootObjects, jsonDocumentWithRootArrays, configuration); 
+		System.out.println("Extracting types...");
+		Schema schema = extractor.getInitalSchema();
+		long extractedTime = System.currentTimeMillis();
+		long extractedElapsedTime = extractedTime-startTime;
+		System.out.println("Types extracted in "+extractedElapsedTime+"ms");
+		System.out.println("Merging types");
+		TypeMerger merger = new TypeMergerImpl();
+		merger.mergeTypes(schema, configuration);
+		long mergedTime = System.currentTimeMillis();
+		long mergedElapsedTime = mergedTime-extractedTime;
+		System.out.println("Types merged in "+mergedElapsedTime+"ms");
+		System.out.println("Converting automatons to regular expressions and optimizing...");
+		TypeConverter converter = new TypeConverterImpl();
+		converter.converTypes(schema, configuration);
+		long convertedTime = System.currentTimeMillis();
+		long convertedElapsedTime = convertedTime-mergedTime;
+		System.out.println("Automatons converted and optimized in "+convertedElapsedTime+"ms");
+		System.out.println("Generating results...");
+		ResultsGenerator generator = new ResultsGeneratorImpl(SchemaDocumentGeneratorFactory.getInstance(), StatisticResultsDocGeneratorFactory.getInstance(), new XSDFileNameGeneratorDefaultImpl()); 
+		Results results = generator.generateResults(schema, configuration);
+		long generatedTime = System.currentTimeMillis();
+		long generatedElapsedTime=generatedTime-convertedTime;
+		System.out.println("Results generated in "+generatedElapsedTime+"ms");
+		System.out.println("Done!!!!");
+		
+		long totalElapsedTime = generatedTime-startTime;
+		System.out.println("Total time: "+totalElapsedTime+"ms");
+		return results;
+	
+	}
+	
+	/**
+	 * Method that, given the input args lists, returns a {@link List} of {@link File} object that represent the input files
 	 * @param args the args array, as provided by {@link XSDInferencer#main(String[])}
+	 * @param filenameFilter the {@link FilenameFilter} to look for input files
 	 * @return a {@link List} of {@link File} object that represent the input XML files
 	 * @throws FileNotFoundException if a file is not find
 	 * @throws NotDirectoryException if the path to an input directory is not a path to a directory
 	 */
-	private List<File> getInstanceXMLFileNames(String[] args) throws FileNotFoundException, NotDirectoryException{
+	private List<File> getInstanceFileNames(String[] args, FilenameFilter filenameFilter) throws FileNotFoundException, NotDirectoryException{
 		boolean somethingFound = false;
 		List<File> result = new ArrayList<>();
 		int startingIndex=-1;
@@ -260,7 +333,7 @@ public class XSDInferencer {
 					throw new FileNotFoundException("XMLs input files directory not found");
 				if(!directory.isDirectory())
 					throw new NotDirectoryException(directoryPath);
-				File[] xmlFiles = directory.listFiles(FILE_NAME_FILTER_XML_EXTENSION);
+				File[] xmlFiles = directory.listFiles(filenameFilter);
 				result.addAll(Arrays.asList(xmlFiles));
 				somethingFound=true;
 			}
@@ -288,21 +361,61 @@ public class XSDInferencer {
 	 * @throws IOException if there is an I/O problem while reading the input XML files or writing the output files
 	 * @throws JDOMException if there is any problem while parsing the input XML files 
 	 */
-	public Results inferXSD(String[] args) throws XSDConfigurationException, IOException, JDOMException{
-		List<File> xmlFiles=getInstanceXMLFileNames(args);
-		XSDInferenceConfiguration configuration = new XSDInferenceConfiguration(args);
-		List<Document> xmlDocuments = new ArrayList<>(xmlFiles.size());
-		SAXBuilder saxBuilder = new SAXBuilder();
-		for(int i=0;i<xmlFiles.size();i++){
-			File xmlFile = xmlFiles.get(i);
-			System.out.print("Reading XML file "+xmlFile.getName()+"...");
-			FileInputStream fis = new FileInputStream(xmlFile);
-			//BufferedReader reader = new BufferedReader(new InputStreamReader(fis, Charsets.UTF_8));
-			Document xmlDocument = saxBuilder.build(fis);
-			xmlDocuments.add(xmlDocument);
-			System.out.println("OK");
+	public Results inferSchema(String[] args) throws XSDInferencerException{
+		try {
+			XSDInferenceConfiguration configuration = new XSDInferenceConfiguration(args);
+			FilenameFilter filenameFilter;
+			if(configuration.getWorkingFormat().equals("xml")){
+				filenameFilter=FILE_NAME_FILTER_XML_EXTENSION;
+				List<File> xmlFiles=getInstanceFileNames(args, filenameFilter);
+				List<Document> xmlDocuments = new ArrayList<>(xmlFiles.size());
+				SAXBuilder saxBuilder = new SAXBuilder();
+				for(int i=0;i<xmlFiles.size();i++){
+					File xmlFile = xmlFiles.get(i);
+					System.out.print("Reading input file "+xmlFile.getName()+"...");
+					FileInputStream fis = new FileInputStream(xmlFile);
+					//BufferedReader reader = new BufferedReader(new InputStreamReader(fis, Charsets.UTF_8));
+					Document xmlDocument = saxBuilder.build(fis);
+					xmlDocuments.add(xmlDocument);
+					System.out.println("OK");
+				}
+				return inferSchema(xmlDocuments, configuration);
+			} else if(configuration.getWorkingFormat().equals("json")){
+				filenameFilter=FILE_NAME_FILTER_JSON_EXTENSION;
+				List<File> jsonFiles=getInstanceFileNames(args, filenameFilter);
+				List<JSONObject> jsonDocumentWithRootObjects = new ArrayList<>(jsonFiles.size());
+				List<JSONArray> jsonDocumentWithRootArrays = new ArrayList<>(jsonFiles.size());
+				for (int i = 0; i < jsonFiles.size(); i++) {
+					File jsonFile = jsonFiles.get(i);
+					String jsonString = Joiner.on(System.lineSeparator()).join(Files.readAllLines(jsonFile.toPath()));
+					JSONObject jsonObject = null;
+					try{
+						jsonObject = new JSONObject(jsonString);
+					} catch(JSONException e){}
+					
+					if(jsonObject!=null){
+						jsonDocumentWithRootObjects.add(jsonObject);
+					}else{
+						JSONArray jsonArray = null;
+						try{
+							jsonArray=new JSONArray(jsonString);
+						} catch (JSONException e) {}
+						if(jsonArray!=null){
+							jsonDocumentWithRootArrays.add(jsonArray);
+						} else {
+							throw new JSONException("Invalid JSON Document "+jsonFile);
+						}
+						
+					}
+				}
+				return inferSchema(jsonDocumentWithRootObjects, jsonDocumentWithRootArrays, configuration);
+			} else {
+				throw new InvalidXSDConfigurationParameterException("Unknown working format. Impossible to load files");
+			}
+		} catch (IOException | JDOMException | RuntimeException e) {
+			throw new XSDInferencerException(e);
 		}
-		return inferXSD(xmlDocuments, configuration);
+		
 	}
 	
 	/**
@@ -320,7 +433,7 @@ public class XSDInferencer {
 	 * @throws IOException if there is an I/O problem while reading the input XML files or writing the output files
 	 * @throws JDOMException if there is any problem while parsing the input XML files
 	 */
-	public static void main(String[] args) throws XSDConfigurationException, IOException ,JDOMException {
+	public static void main(String[] args) throws Exception {
 		if(Arrays.asList(args).contains("--help")){
 			printHelp();
 			System.exit(0);
@@ -328,10 +441,12 @@ public class XSDInferencer {
 		try {
 			XSDInferencer inferencer = new XSDInferencer();
 			
-			Results results = inferencer.inferXSD(args);
+			Results results = inferencer.inferSchema(args);
 			
-			Map<String, String> schemasAsXMLStrings = results.getSchemasAsXMLStrings();
-			Map<String, String> statisticsDocumentsAsXMLStrings = results.getStatisticsAsXMLStrings();
+			Map<String, String> xsdsAsXMLStrings = results.getXSDsAsStrings();
+			Map<String, String> jsonsAsStrings = results.getJsonSchemasAsStrings();
+			Map<String, String> schemasAsStrings = xsdsAsXMLStrings!=null?xsdsAsXMLStrings:jsonsAsStrings;
+			Map<String, String> statisticsDocumentsAsXMLStrings = results.getStatisticsAsStrings();
 			File outputDirectory = null;
 			for(int i=0;i<args.length;i++){
 				if(!args[i].equalsIgnoreCase("--"+KEY_OUTPUT_DIRECTORY))
@@ -346,40 +461,45 @@ public class XSDInferencer {
 			}
 			if(outputDirectory!=null){
 				System.out.println("Writing results to "+outputDirectory.getAbsolutePath());
-				for(String name: schemasAsXMLStrings.keySet()){
+				
+				for(String name: schemasAsStrings.keySet()){
 					File currentOutpuFile = new File(outputDirectory, name);
 					FileOutputStream fOs = new FileOutputStream(currentOutpuFile);
 					BufferedWriter bWriter = new BufferedWriter(new OutputStreamWriter(fOs, Charsets.UTF_8));
-					bWriter.write(schemasAsXMLStrings.get(name));
+					bWriter.write(schemasAsStrings.get(name));
 					bWriter.flush();
 					bWriter.close();
 				}
-				for(String name: statisticsDocumentsAsXMLStrings.keySet()){
-					File currentOutpuFile = new File(outputDirectory, name);
-					FileWriter fWriter = new FileWriter(currentOutpuFile);
-					BufferedWriter bWriter = new BufferedWriter(fWriter);
-					bWriter.write(statisticsDocumentsAsXMLStrings.get(name));
-					bWriter.flush();
-					bWriter.close();
-				}
+			    if(statisticsDocumentsAsXMLStrings!=null){
+					for(String name: statisticsDocumentsAsXMLStrings.keySet()){
+						File currentOutpuFile = new File(outputDirectory, name);
+						FileWriter fWriter = new FileWriter(currentOutpuFile);
+						BufferedWriter bWriter = new BufferedWriter(fWriter);
+						bWriter.write(statisticsDocumentsAsXMLStrings.get(name));
+						bWriter.flush();
+						bWriter.close();
+					}
+			    }
 				System.out.println("Results written");
 			}
 			else{
-				for(String name: schemasAsXMLStrings.keySet()){
+				for(String name: schemasAsStrings.keySet()){
 					System.out.println(name+":");
-					System.out.println(schemasAsXMLStrings.get(name));
+					System.out.println(schemasAsStrings.get(name));
 					System.out.println();
 				}
-				
-				for(String name: statisticsDocumentsAsXMLStrings.keySet()){
-					System.out.println(name+":");
-					System.out.println(statisticsDocumentsAsXMLStrings.get(name));
-					System.out.println();
+				if(statisticsDocumentsAsXMLStrings!=null){
+					for(String name: statisticsDocumentsAsXMLStrings.keySet()){
+						System.out.println(name+":");
+						System.out.println(statisticsDocumentsAsXMLStrings.get(name));
+						System.out.println();
+					}
 				}
 			}
-		} catch (XSDConfigurationException | IOException | JDOMException e) {
+		} catch (XSDInferencerException e) {
 			System.err.println();
 			System.err.println("Error at inference proccess: "+e.getMessage());
+			e.printStackTrace();
 			System.exit(1);
 		}
 	}

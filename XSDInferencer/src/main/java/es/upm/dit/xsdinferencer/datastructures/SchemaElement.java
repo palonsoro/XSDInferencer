@@ -306,4 +306,5 @@ public class SchemaElement implements RegularExpression, SchemaNode{
 	public void setNamespace(String namespace){
 		this.namespace=namespace;
 	}
+	
 }

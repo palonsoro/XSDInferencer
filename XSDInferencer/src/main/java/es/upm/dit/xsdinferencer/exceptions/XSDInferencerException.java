@@ -13,9 +13,38 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+package es.upm.dit.xsdinferencer.exceptions;
+
 /**
- * Provides interfaces to the conversion module and its submodules.
+ * Base class for exceptions thrown by XSDInferencer
  * 
  * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
-package es.upm.dit.xsdinferencer.conversion;
+public class XSDInferencerException extends Exception {
+
+	/**
+	 * UID for serialization
+	 */
+	private static final long serialVersionUID = 1L;
+
+	public XSDInferencerException() {
+	}
+
+	public XSDInferencerException(String message) {
+		super(message);
+	}
+
+	public XSDInferencerException(Throwable cause) {
+		super(cause);
+	}
+
+	public XSDInferencerException(String message, Throwable cause) {
+		super(message, cause);
+	}
+
+	protected XSDInferencerException(String message, Throwable cause,
+			boolean enableSuppression, boolean writableStackTrace) {
+		super(message, cause, enableSuppression, writableStackTrace);
+	}
+
+}

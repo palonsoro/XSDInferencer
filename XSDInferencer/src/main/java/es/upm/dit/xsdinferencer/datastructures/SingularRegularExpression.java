@@ -150,4 +150,5 @@ public abstract class SingularRegularExpression implements RegularExpression {
 			throw new IndexOutOfBoundsException("A SingularRegularExpression only has content at index 0");
 		content=element;
 	}
+
 }

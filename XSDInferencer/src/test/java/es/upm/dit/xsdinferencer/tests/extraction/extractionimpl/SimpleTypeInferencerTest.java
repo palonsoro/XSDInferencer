@@ -55,6 +55,7 @@ public class SimpleTypeInferencerTest {
 		when(config.getMinNumberOfDistinctValuesToEnum()).thenReturn(4);
 		when(config.getSimpleTypeInferencer()).thenReturn(XSDInferenceConfiguration.VALUE_SIMPLE_TYPE_INFERENCER_DEFAULTIMPL);
 		when(config.getGenerateEnumerations()).thenReturn(true);
+		when(config.getWorkingFormat()).thenReturn("xml");
 		
 		simpleTypeInferencer = InferencersFactory.getInstance().getSimpleTypeInferencerInstance("", config);
 	}

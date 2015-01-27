@@ -15,5 +15,7 @@ limitations under the License.
 */
 /**
  * Provides exceptions related to data structures
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer.datastructures.exceptions;

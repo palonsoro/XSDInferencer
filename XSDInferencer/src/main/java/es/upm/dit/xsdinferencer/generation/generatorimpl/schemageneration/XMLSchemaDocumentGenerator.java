@@ -13,15 +13,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package es.upm.dit.xsdinferencer.generation.generatorimpl.xsdgeneration;
+package es.upm.dit.xsdinferencer.generation.generatorimpl.schemageneration;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static es.upm.dit.xsdinferencer.XSDInferenceConfiguration.XSD_NAMESPACE_PREFIX;
 import static es.upm.dit.xsdinferencer.XSDInferenceConfiguration.XSD_NAMESPACE_URI;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.jdom2.Attribute;
 import org.jdom2.Comment;
@@ -29,6 +34,8 @@ import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.Namespace;
 import org.jdom2.filter.Filters;
+
+import com.google.common.collect.ImmutableSortedSet;
 
 import es.upm.dit.xsdinferencer.XSDInferenceConfiguration;
 import es.upm.dit.xsdinferencer.datastructures.All;
@@ -46,21 +53,67 @@ import es.upm.dit.xsdinferencer.datastructures.SchemaElement;
 import es.upm.dit.xsdinferencer.datastructures.Sequence;
 import es.upm.dit.xsdinferencer.datastructures.SimpleType;
 import es.upm.dit.xsdinferencer.datastructures.SingularRegularExpression;
-import es.upm.dit.xsdinferencer.generation.XSDDocumentGenerator;
+import es.upm.dit.xsdinferencer.generation.SchemaDocumentGenerator;
+import es.upm.dit.xsdinferencer.util.comparators.ComplexTypeComparator;
+import es.upm.dit.xsdinferencer.util.comparators.SchemaAttributeComparator;
+import es.upm.dit.xsdinferencer.util.comparators.SchemaElementComparator;
+import es.upm.dit.xsdinferencer.util.comparators.SimpleTypeComparator;
 import es.upm.dit.xsdinferencer.util.xsdfilenaming.XSDFileNameGenerator;
 
 /**
- * Default implementation for {@link XSDDocumentGenerator}.
+ * XSD implementation for {@link SchemaDocumentGenerator}.
+ * This generator generates an individual XSD document for a given targetNamespace (as specified by the interface, 
+ * it must be called once for each namespace whose inference is intended to be done, because each namespace must 
+ * be defined in an individual XSD file). The XSD generated will vary depending on whether 
+ * the target namespace is the main namespace (the one which will contain the global complex type and simple type 
+ * declarations) or not.
+ * The result is provided as JDOM2 {@link Document} object, with the XSD file contents.
+ * 
  * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
-class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
+class XMLSchemaDocumentGenerator implements SchemaDocumentGenerator<Document> {
+	
+	/**
+	 * The target namespace to generate the document from.
+	 */
+	private String targetNamespace;
+	
+	/**
+	 * The main namespace, either the one stored at the configuration or a guessed one.
+	 */
+	private String mainNamespace;
+	
+	/**
+	 * A {@link XSDFileNameGenerator} to generate XSD file names.
+	 */
+	private XSDFileNameGenerator fileNameGenerator;
 
 	/**
-	 * @see XSDDocumentGenerator#generateSchemaDocument(Schema, XSDInferenceConfiguration, String, String, XSDFileNameGenerator)
+	 * Constructor
+	 * @param targetNamespace The target namespace to generate the document from.
+	 * @param mainNamespace The main namespace, either the one stored at the configuration or a guessed one.
+	 * @param fileNameGenerator A {@link XSDFileNameGenerator} to generate XSD file names.
+	 */
+	public XMLSchemaDocumentGenerator(String targetNamespace,
+			String mainNamespace, XSDFileNameGenerator fileNameGenerator) {
+		this.targetNamespace = targetNamespace;
+		this.mainNamespace = mainNamespace;
+		this.fileNameGenerator = fileNameGenerator;
+	}
+
+	/**
+	 * It generates the XSD file of the targetNamespace given at the constructor, taking into account that 
+	 * the main namespace is the one given at the constructor.
+	 * 
+	 * @param schema the schema object
+	 * @param configuration the inference configuration
+	 * 
+	 * @return a JDOM2 {@link Document} object containing the XSD contents.
+	 * 
+	 * @see SchemaDocumentGenerator#generateSchemaDocument(Schema, XSDInferenceConfiguration)
 	 */
 	@Override
-	public Document generateSchemaDocument(Schema schema, XSDInferenceConfiguration configuration,
-			String targetNamespace, String mainNamespace, XSDFileNameGenerator fileNameGenerator) {
+	public Document generateSchemaDocument(Schema schema, XSDInferenceConfiguration configuration) {
 //		if(!configuration.getElementsGlobal()==false || 
 //				!configuration.getComplexTypesGlobal()==true ||
 //				!configuration.getSimpleTypesGlobal()==true
@@ -119,6 +172,11 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 			Attribute targetNamespaceAttr = new Attribute("targetNamespace", targetNamespace);
 			elementSchema.setAttribute(targetNamespaceAttr);
 		}
+		SortedSet<SimpleType> sortedSimpleTypes=new TreeSet<>(new SimpleTypeComparator());
+		sortedSimpleTypes.addAll(schema.getSimpleTypes().values());
+		SortedSet<ComplexType> sortedComplexTypes=new TreeSet<>(new ComplexTypeComparator());
+		sortedComplexTypes.addAll(schema.getComplexTypes().values());
+		//CONTINUE FROM HERE: Generate sorted sets for SchemaElement and SchemaAttribute objects and use them where needed.
 		Attribute elementFormDefault = new Attribute("elementFormDefault","qualified");
 		elementSchema.setAttribute(elementFormDefault);
 		Document resultingDocument = new Document(elementSchema);
@@ -128,7 +186,7 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 			//if not, simple types of complex types which have attributes but not children will be declared globally 
 			//(due to limitations of XSD, they may not be declared locally together with the attributes info)
 			if (configuration.getSimpleTypesGlobal()) {
-				for (SimpleType simpleType : schema.getSimpleTypes().values()) {
+				for (SimpleType simpleType : sortedSimpleTypes) {
 					if (!simpleType.isEnum() || simpleType.isEmpty())
 						continue;
 					Element simpleTypeElement = generateSimpleType(simpleType,
@@ -136,8 +194,7 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 					elementSchema.addContent(simpleTypeElement);
 				}
 			} else {
-				for (ComplexType complexType : schema.getComplexTypes()
-						.values()) {
+				for (ComplexType complexType : sortedComplexTypes) {
 					SimpleType simpleType = complexType.getTextSimpleType();
 					if (complexType.getAttributeList().isEmpty()
 							|| !(complexType.getAutomaton().nodeCount() == 0)
@@ -150,16 +207,15 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 			}
 			//Global complexType elements are only generated in the main schema (i.e. the one whose targetNamespace is equal to mainNamespace)
 			if (configuration.getComplexTypesGlobal()) {
-				for (ComplexType complexType : schema.getComplexTypes()
-						.values()) {
-					//It may be a good idea to uncomment the following code and test it.
-					//Warning: it would require to rewrite too many unit tests 
-//					boolean hasNoChildren = complexType.getRegularExpression().equals(new EmptyRegularExpression());
-//					boolean hasNoAttributes = complexType.getAttributeList().size()==0;
+				for (ComplexType complexType : sortedComplexTypes) {
+					boolean hasNoChildren = complexType.getRegularExpression().equals(new EmptyRegularExpression());
+					boolean hasNoAttributes = complexType.getAttributeList().size()==0;
+					boolean hasNoComments = complexType.getComments().size() == 0;
 //					boolean simpleTypeIsNotEmpty = !complexType.getTextSimpleType().isEmpty();
-//					if(hasNoChildren&&hasNoAttributes&&simpleTypeIsNotEmpty)
-//						continue; //Because the elements which are linked to this ComplexType at our internal model 
-//               					  //will be linked to an XSD simple type elsewhere, either a builtin or a custom one.
+					boolean simpleTypeIsWhiteSpaceOnlyOrEmpty = !(complexType.getTextSimpleType().isEmpty() || complexType.getTextSimpleType().consistOnlyOfWhitespaceCharacters());
+					if(hasNoChildren&&hasNoAttributes&&simpleTypeIsWhiteSpaceOnlyOrEmpty&&hasNoComments)
+						continue; //Because the elements which are linked to this ComplexType at our internal model 
+               					  //will be linked to an XSD simple type elsewhere, either a builtin or a custom one.
 					Element complexTypeElement = generateComplexType(
 							configuration, complexType, false, targetNamespace,
 							namespaceURIToPrefixMappings, mainNamespace,
@@ -174,7 +230,7 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 		//are also in the main namespace.
 		if((namespaceURIToPrefixMappings.size()-configuration.getSkipNamespaces().size())>1){
 			
-			Map<String, SchemaAttribute> globalAttributeCandidates = schema.getAttributes().row(targetNamespace);
+			SortedMap<String, SchemaAttribute> globalAttributeCandidates = new TreeMap<>(schema.getAttributes().row(targetNamespace));
 			if(!targetNamespace.equals(mainNamespace)&&!targetNamespace.equals("")){
 				globalAttributesLoop:
 				for(Map.Entry<String, SchemaAttribute> schemaAttributeEntry:globalAttributeCandidates.entrySet()){
@@ -203,8 +259,10 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 		//2-The element is a valid root
 		//3-The element is in a namespace other than the main namespace. Note that the element WILL be surrounded by the corresponding group if the workaround is enabled.
 		//Another important remark: Iterating over a set copy implies iterating over DISTINCT SchemaElements, so if two keys pointed to equal SchemaElements, we would generate it only once-
+		SortedSet<SchemaElement> schemaElementsAtTargetNamespace = new TreeSet<>(new SchemaElementComparator());
+		schemaElementsAtTargetNamespace.addAll(schema.getElements().row(targetNamespace).values());
 		globalSchemaElementsLoop:
-		for(SchemaElement schemaElement: schema.getElements().row(targetNamespace).values()){
+		for(SchemaElement schemaElement: schemaElementsAtTargetNamespace){
 //			if(!configuration.getElementsGlobal()&&
 //					!schemaElement.isValidRoot()&&
 //					(targetNamespace.equals(mainNamespace)||configuration.getStrictValidRootDefinitionWorkaround()))
@@ -212,16 +270,22 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 					!schemaElement.isValidRoot()&&
 					(targetNamespace.equals(mainNamespace)))
 				continue;
-			for(Element currentElement:elementSchema.getContent(Filters.element("element",xsdNamespace))){
-				if(schemaElement.getName().equals(currentElement.getAttributeValue("name")))
-					continue globalSchemaElementsLoop;
-			}
+//			for(Element currentElement:elementSchema.getContent(Filters.element("element",xsdNamespace))){
+//				if(schemaElement.getName().equals(currentElement.getAttributeValue("name")))
+//					continue globalSchemaElementsLoop;
+//			}
 			String possibleGroupName=schemaElement.getName()+configuration.getTypeNamesAncestorsSeparator()+schemaElement.getType().getName();
 			for(Element currentElement:elementSchema.getContent(Filters.element("group",xsdNamespace))){
 				if(possibleGroupName.equals(currentElement.getAttributeValue("name")))
 					continue globalSchemaElementsLoop;
 			}
 			Element elementOrGroupElement = generateElement(schemaElement, true, configuration, targetNamespace, mainNamespace, null, namespaceURIToPrefixMappings, xsdNamespace);
+			if(elementOrGroupElement.getName().equals("element") ){
+				for(Element currentElement:elementSchema.getChildren("element", xsdNamespace)){
+					if(schemaElement.getName().equals(currentElement.getAttributeValue("name")))
+						continue globalSchemaElementsLoop;
+				}
+			}
 			elementSchema.addContent(elementOrGroupElement);
 		}
 		return resultingDocument;
@@ -237,7 +301,7 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 	private List<Namespace> getNamespaceDeclarations(Map<String,String> namespaceURIToPrefixMappings, Namespace xsdNamespace){
 		List<Namespace> namespaceDeclarations = new ArrayList<>(namespaceURIToPrefixMappings.size()+1);
 		namespaceDeclarations.add(xsdNamespace);
-		for(String namespaceURI:namespaceURIToPrefixMappings.keySet()){
+		for(String namespaceURI:ImmutableSortedSet.copyOf(namespaceURIToPrefixMappings.keySet())){
 			String namespacePrefix=namespaceURIToPrefixMappings.get(namespaceURI).replace(":", "");
 			if(namespaceURI.equals("")){
 				namespaceDeclarations.add(Namespace.NO_NAMESPACE);
@@ -266,7 +330,7 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 	private Element generateComplexType(XSDInferenceConfiguration configuration, ComplexType complexType, boolean anonymous, 
 			String targetNamespace, Map<String, String> namespaceURIToPrefixMappings, String mainNamespace, Namespace xsdNamespace) {
 		Element complexTypeElement = new Element("complexType",xsdNamespace);
-		for(String commentOnComplexType:complexType.getComments()){
+		for(String commentOnComplexType:ImmutableSortedSet.copyOf(complexType.getComments())){
 			complexTypeElement.addContent(new Comment(commentOnComplexType));
 		}
 		if(!anonymous){
@@ -331,7 +395,8 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 	 */
 	private List<Element> generateAttributeList(ComplexType complexType, String targetNamespace, String mainNamespace, XSDInferenceConfiguration configuration, 
 			Map<String, String> namespaceURIToPrefixMappings, Namespace xsdNamespace){
-		List<SchemaAttribute> schemaAttributeList = complexType.getAttributeList();
+		List<SchemaAttribute> schemaAttributeList = new ArrayList<>(complexType.getAttributeList()); 
+		Collections.<SchemaAttribute>sort(schemaAttributeList,new SchemaAttributeComparator());
 		List<Element> result = new ArrayList<>(schemaAttributeList.size());
 		for(int i=0;i<schemaAttributeList.size();i++){
 			SchemaAttribute schemaAttribute = schemaAttributeList.get(i);
@@ -490,7 +555,11 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 		Attribute restrictionBaseAttr = new Attribute("base","");
 		restrictionBaseAttr.setValue(simpleType.getBuiltinType());
 		restrictionElement.setAttribute(restrictionBaseAttr);
-		for(String value:simpleType){
+		SortedSet<String> values = new TreeSet<>();
+		for (String value : simpleType) {
+			values.add(value);
+		}
+		for(String value:values){
 			Element enumerationElement = new Element("enumeration",xsdNamespace);
 			Attribute enumerationValueAttr = new Attribute("value","");
 			enumerationValueAttr.setValue(value);
@@ -504,7 +573,7 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 	
 	/**
 	 * It a generates a XSD representation of a {@link RegularExpression}. It is called recursively to generate 
-	 * subexpressions until one of them is a {@link SchemaElement}, then, {@link XSDDocumentGeneratorImpl#generateElement(SchemaElement, boolean, XSDInferenceConfiguration, String, String, ComplexType, Map, Namespace)} 
+	 * subexpressions until one of them is a {@link SchemaElement}, then, {@link XMLSchemaDocumentGenerator#generateElement(SchemaElement, boolean, XSDInferenceConfiguration, String, String, ComplexType, Map, Namespace)} 
 	 * is called (so it is not possible to recures infinitely if the {@link RegularExpression} is well defined. 
 	 * This method is built in a way that allows to append its results directly to a <i>complexType</i> tag without errors.
 	 * @param regexp the regular expression to represent
@@ -542,7 +611,7 @@ class XSDDocumentGeneratorImpl implements XSDDocumentGenerator {
 			for(int i=0;i<regexp.elementCount();i++){
 				Element currentElementChild = generateRegexpRepresentation(regexp.getElement(i), configuration, targetNamespace, mainNamespace, complexType, namespaceURIToPrefixMappings, xsdNamespace);
 				if(regexp instanceof All && currentElementChild!=null){
-					All regexpAsAll = (All) regexp;
+					All regexpAsAll = (All) regexp; // If a test fails due to children order diferences unde <all/> tags, modify code around here to ensure that elements inside <all/> elements follow the same order.
 					if(regexpAsAll.getMinOccurs()==0){
 						Attribute minOccursAttribute = new Attribute("minOccurs", "0");
 						currentElementChild.setAttribute(minOccursAttribute);

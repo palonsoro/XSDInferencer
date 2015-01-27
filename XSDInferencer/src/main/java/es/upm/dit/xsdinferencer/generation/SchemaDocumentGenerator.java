@@ -15,25 +15,25 @@ limitations under the License.
 */
 package es.upm.dit.xsdinferencer.generation;
 
-import es.upm.dit.xsdinferencer.Results;
 import es.upm.dit.xsdinferencer.XSDInferenceConfiguration;
 import es.upm.dit.xsdinferencer.datastructures.Schema;
-import es.upm.dit.xsdinferencer.exceptions.XSDConfigurationException;
 
 /**
- * Main interface for the generator module, which takes an {@link Schema} object and 
- * the inference configuration and generates the results of the inferences process. 
- * Those results will be stored on a {@link Results} object, which will be returned.
+ * This is an interface for schema document generator submodules. Each instance of any implementation of this interface 
+ * is intended to generate a single schema document (in those cases when many documents can be generated, as happens 
+ * with XSD). Implementation-specific parameters (like target namespace...) can be provided via constructors or implementation-specific methods.
+ *  
  * @author Pablo Alonso Rodriguez (Center for Open Middleware)
- *
+ * 
+ * @param <T> The type of the returned schema document.
  */
-public interface ResultsGenerator {
+public interface SchemaDocumentGenerator<T> {
 	/**
-	 * Method that performs the results generation and returns them.
-	 * @param schema the schema object whith all the inference data
+	 * Method that generates a single
+	 * @param schema the current schema
 	 * @param configuration the inference configuration
-	 * @return a {@link Results} object with the inference results
-	 * @throws XSDConfigurationException if the inference configuration is not valid
+	 * @return a JDOM2 document with the generated XSD
+	 * @throws IllegalArgumentException if no XSD could be generated for the given targetNamespace, for example, because it is an skipped namespace.
 	 */
-	public Results generateResults(Schema schema, XSDInferenceConfiguration configuration) throws XSDConfigurationException;
+	public T generateSchemaDocument(Schema schema, XSDInferenceConfiguration configuration);
 }

@@ -13,9 +13,24 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+package es.upm.dit.xsdinferencer.util.comparators;
+
+import java.util.Comparator;
+
+import es.upm.dit.xsdinferencer.datastructures.SimpleType;
+
 /**
- * Provides interfaces to the conversion module and its submodules.
- * 
+ * Name-based comparator for {@link SimpleType} objects.
  * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
-package es.upm.dit.xsdinferencer.conversion;
+public class SimpleTypeComparator implements Comparator<SimpleType> {
+	
+	/**
+	 * @see Comparator#compare(Object, Object)
+	 */
+	@Override
+	public int compare(SimpleType o1, SimpleType o2) {
+		return o1.getName().compareTo(o2.getName());
+	}
+
+}

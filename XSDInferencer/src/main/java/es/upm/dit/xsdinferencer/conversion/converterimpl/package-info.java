@@ -15,5 +15,7 @@ limitations under the License.
 */
 /**
  * Provides the implementation for the conversion module
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer.conversion.converterimpl;

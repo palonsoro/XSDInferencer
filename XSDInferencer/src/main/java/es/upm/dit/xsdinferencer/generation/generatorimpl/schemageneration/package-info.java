@@ -14,8 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 /**
- * Provides interfaces to the conversion module and its submodules.
+ * Provides the implementation of the schema generation submodule of the generation module.
+ * The implementation must be built by means of {@link es.upm.dit.xsdinferencer.generation.generatorimpl.schemageneration.SchemaDocumentGeneratorFactory}
  * 
  * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
-package es.upm.dit.xsdinferencer.conversion;
+package es.upm.dit.xsdinferencer.generation.generatorimpl.schemageneration;

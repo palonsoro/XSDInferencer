@@ -20,6 +20,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.jdom2.Document;
+import org.json.JSONObject;
+
+import com.google.common.collect.ImmutableMap;
 
 import es.upm.dit.xsdinferencer.Results;
 import es.upm.dit.xsdinferencer.XSDInferenceConfiguration;
@@ -27,10 +30,10 @@ import es.upm.dit.xsdinferencer.datastructures.Schema;
 import es.upm.dit.xsdinferencer.exceptions.InvalidXSDConfigurationParameterException;
 import es.upm.dit.xsdinferencer.exceptions.XSDConfigurationException;
 import es.upm.dit.xsdinferencer.generation.ResultsGenerator;
+import es.upm.dit.xsdinferencer.generation.SchemaDocumentGenerator;
 import es.upm.dit.xsdinferencer.generation.StatisticResultsDocGenerator;
-import es.upm.dit.xsdinferencer.generation.XSDDocumentGenerator;
+import es.upm.dit.xsdinferencer.generation.generatorimpl.schemageneration.SchemaDocumentGeneratorFactory;
 import es.upm.dit.xsdinferencer.generation.generatorimpl.statisticsgeneration.StatisticResultsDocGeneratorFactory;
-import es.upm.dit.xsdinferencer.generation.generatorimpl.xsdgeneration.XSDDocumentGeneratorFactory;
 import es.upm.dit.xsdinferencer.statistics.Statistics;
 import es.upm.dit.xsdinferencer.util.xsdfilenaming.XSDFileNameGenerator;
 
@@ -40,19 +43,52 @@ import es.upm.dit.xsdinferencer.util.xsdfilenaming.XSDFileNameGenerator;
  *
  */
 public class ResultsGeneratorImpl implements ResultsGenerator {
+	
+	/**
+	 * Factory for {@link SchemaDocumentGenerator} objects used.
+	 */
+	private SchemaDocumentGeneratorFactory schemaDocumentGeneratorFactory;
+	
+	/**
+	 * Factory for {@link StatisticResultsDocGenerator} objects used
+	 */
+	private StatisticResultsDocGeneratorFactory statisticResultsDocGeneratorFactory;
+	
+	/**
+	 * {@link XSDFileNameGenerator} used to generate names for XSD files.
+	 */
+	private XSDFileNameGenerator xsdFileNameGenerator;
 
 	/**
-	 * Auxiliary method that generates the XSDs and puts them into the {@link Map} 
-	 * to be included into the {@link Results} object returned by {@link ResultsGenerator#generateResults(Schema, XSDInferenceConfiguration, XSDDocumentGeneratorFactory, StatisticResultsDocGeneratorFactory, XSDFileNameGenerator)}
+	 * Constructor.
+	 * 
+	 * @param schemaDocumentGeneratorFactory factory for {@link SchemaDocumentGenerator} objects used.
+	 * @param statisticResultsDocGeneratorFactory factory for {@link StatisticResultsDocGenerator} objects used
+	 * @param xsdFileNameGenerator {@link XSDFileNameGenerator} used to generate names for XSD files.
+	 */
+	public ResultsGeneratorImpl(
+			SchemaDocumentGeneratorFactory xsdDocumentGeneratorFactory,
+			StatisticResultsDocGeneratorFactory statisticResultsDocGeneratorFactory,
+			XSDFileNameGenerator xsdFileNameGenerator) {
+		super();
+		this.schemaDocumentGeneratorFactory = xsdDocumentGeneratorFactory;
+		this.statisticResultsDocGeneratorFactory = statisticResultsDocGeneratorFactory;
+		this.xsdFileNameGenerator = xsdFileNameGenerator;
+	}
+
+	/**
+	 * Auxiliary method that generates XSDs and puts them into the {@link Map} 
+	 * to be included into the {@link Results} object returned by {@link ResultsGenerator#generateResults(Schema, XSDInferenceConfiguration)}.
+	 * This method is to be called if the working format is XSD.
 	 * @param schema the {@link Schema} object used at the inference
 	 * @param configuration the inference configuration
-	 * @param xsdDocumentGeneratorFactory factory for {@link XSDDocumentGenerator} implementations
+	 * @param schemaDocumentGeneratorFactory factory for {@link SchemaDocumentGenerator} implementations
 	 * @param xsdFileNameGenerator XSD file name generator
 	 * @return the {@link Map} between the names of the XSDs and the {@link Document} objects that represent them
 	 * @throws XSDConfigurationException if an invalid configuration is provided
 	 */
 	protected Map<String,Document> generateXSDDocuments(Schema schema,XSDInferenceConfiguration configuration, 
-			XSDDocumentGeneratorFactory xsdDocumentGeneratorFactory, XSDFileNameGenerator xsdFileNameGenerator) throws XSDConfigurationException {
+			SchemaDocumentGeneratorFactory xsdDocumentGeneratorFactory, XSDFileNameGenerator xsdFileNameGenerator) throws XSDConfigurationException {
 		String mainNamespace= configuration.getMainNamespace();
 		if(mainNamespace==null)
 			mainNamespace=schema.guessMainNamespace(configuration);
@@ -60,8 +96,9 @@ public class ResultsGeneratorImpl implements ResultsGenerator {
 		Map<String, String> namespaceURIsToPrefixMappings = schema.getSolvedNamespaceMappings();
 		if(!namespaceURIsToPrefixMappings.keySet().contains(mainNamespace))
 			throw new InvalidXSDConfigurationParameterException("The specified main namespace is not present at the input documents");
-		XSDDocumentGenerator xsdGenerator = xsdDocumentGeneratorFactory.getXSDDocumentGeneratorInstance();
+		
 		for(String targetNamespace:namespaceURIsToPrefixMappings.keySet()){
+			SchemaDocumentGenerator<Document> xsdGenerator = xsdDocumentGeneratorFactory.getXMLSchemaDocumentGeneratorInstance(targetNamespace, mainNamespace, xsdFileNameGenerator);
 			if(configuration.getSkipNamespaces().contains(targetNamespace))
 				continue;
 			if(targetNamespace.equals(XSDInferenceConfiguration.XML_NAMESPACE_URI)&&
@@ -76,7 +113,7 @@ public class ResultsGeneratorImpl implements ResultsGenerator {
 			String fileName=targetNamespace;
 			if(xsdFileNameGenerator!=null)
 				fileName=xsdFileNameGenerator.getSchemaDocumentFileName(targetNamespace, namespaceURIsToPrefixMappings);
-			Document xsdDocument = xsdGenerator.generateSchemaDocument(schema, configuration, targetNamespace, mainNamespace, xsdFileNameGenerator);
+			Document xsdDocument = xsdGenerator.generateSchemaDocument(schema, configuration);
 			result.put(fileName, xsdDocument);
 		}
 		return result;
@@ -85,7 +122,7 @@ public class ResultsGeneratorImpl implements ResultsGenerator {
 	
 	/**
 	 * Auxiliary method that generates the statistics XML document and puts it into the {@link Map} 
-	 * to be included into the {@link Results} object returned by {@link ResultsGenerator#generateResults(Schema, XSDInferenceConfiguration, XSDDocumentGeneratorFactory, StatisticResultsDocGeneratorFactory, XSDFileNameGenerator)}
+	 * to be included into the {@link Results} object returned by {@link ResultsGenerator#generateResults(Schema, XSDInferenceConfiguration)}
 	 * @param statistics the {@link Statistics} objects used
 	 * @param statisticResultsDocGeneratorFactory the {@link StatisticResultsDocGeneratorFactory} used to build the {@link StatisticResultsDocGenerator} used to generate the document
 	 * @return the {@link Map} to be included in the results object.
@@ -96,17 +133,43 @@ public class ResultsGeneratorImpl implements ResultsGenerator {
 		return Collections.singletonMap("statistics.xml", statisticsDocument);
 	
 	}
+	
+	/**
+	 * This method generates JSON Schema documents from the provided {@link Schema} object. 
+	 * It is the entry point to the JSON Schema generator submodule.
+	 * @param schema the schema object
+	 * @param configuration the inference configuration
+	 * @return a map between strings representing file names and {@link JSONObject} with generated JSON schemas
+	 */
+	protected Map<String,JSONObject> generateJSONSchemaDocuments(Schema schema, XSDInferenceConfiguration configuration, SchemaDocumentGeneratorFactory factory){
+		ImmutableMap.Builder<String, JSONObject> resultBuilder = new ImmutableMap.Builder<>();
+		SchemaDocumentGenerator<JSONObject> jsonSchemaGeneratorMain = factory.getJSONSchemaDocumentGeneratorInstance();
+		JSONObject mainJsonSchema = jsonSchemaGeneratorMain.generateSchemaDocument(schema, configuration);
+		resultBuilder.put("schema.json",mainJsonSchema);
+		return resultBuilder.build(); 
+	}
 
 	@Override
 	public Results generateResults(Schema schema,
-			XSDInferenceConfiguration configuration, 
-			XSDDocumentGeneratorFactory xsdDocumentGeneratorFactory, 
-			StatisticResultsDocGeneratorFactory statisticResultsDocGeneratorFactory, XSDFileNameGenerator xsdFileNameGenerator) throws XSDConfigurationException {
-
-		Map<String,Document> xsdDocuments = generateXSDDocuments(schema, configuration, xsdDocumentGeneratorFactory, xsdFileNameGenerator);
+			XSDInferenceConfiguration configuration) throws XSDConfigurationException {
 		
-		Map<String,Document> statisticDocuments = generateStatisticsResults(schema.getStatistics(), statisticResultsDocGeneratorFactory);
-		Results results = new Results(xsdDocuments, statisticDocuments);
+		Results results;
+		
+		if(configuration.getWorkingFormat().equals("xml")){
+			Map<String,Document> statisticDocuments = generateStatisticsResults(schema.getStatistics(), statisticResultsDocGeneratorFactory);
+			Map<String,Document> xsdDocuments = generateXSDDocuments(schema, configuration, schemaDocumentGeneratorFactory, xsdFileNameGenerator);
+			results = new Results(xsdDocuments, statisticDocuments);
+		
+		}
+		else if(configuration.getWorkingFormat().equals("json")){
+			Map<String,JSONObject> jsonSchemaDocuments = generateJSONSchemaDocuments(schema, configuration,schemaDocumentGeneratorFactory);
+			results = new Results(null,jsonSchemaDocuments ,ImmutableMap.of());
+		}
+		else{
+			throw new XSDConfigurationException("Working format '"+configuration.getWorkingFormat()+"' not supported by this generator module implementation.");
+		}
+		
+		
 		return results;
 	}
 }

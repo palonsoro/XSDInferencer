@@ -13,9 +13,24 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+package es.upm.dit.xsdinferencer.util.comparators;
+
+import java.util.Comparator;
+
+import es.upm.dit.xsdinferencer.datastructures.ComplexType;
+
 /**
- * Provides interfaces to the conversion module and its submodules.
- * 
+ * Name-based comparator for {@link ComplexType} objects.
  * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
-package es.upm.dit.xsdinferencer.conversion;
+public class ComplexTypeComparator implements Comparator<ComplexType> {
+	
+	/**
+	 * @see Comparator#compare(Object, Object)
+	 */
+	@Override
+	public int compare(ComplexType o1, ComplexType o2) {
+		return o1.getName().compareTo(o2.getName());
+	}
+
+}

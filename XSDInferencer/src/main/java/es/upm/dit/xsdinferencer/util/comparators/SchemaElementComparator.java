@@ -13,9 +13,31 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+package es.upm.dit.xsdinferencer.util.comparators;
+
+import java.util.Comparator;
+
+import es.upm.dit.xsdinferencer.datastructures.SchemaElement;
+
 /**
- * Provides interfaces to the conversion module and its submodules.
- * 
+ * Name-based comparator for {@link SchemaElement} objects.
  * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
-package es.upm.dit.xsdinferencer.conversion;
+public class SchemaElementComparator extends SchemaNodeComparator implements Comparator<SchemaElement> {
+
+	/**
+	 * @see Comparator#compare(Object, Object)
+	 */
+	@Override
+	public int compare(SchemaElement o1, SchemaElement o2) {
+		int superCompare = super.compareNodes(o1, o2);
+		if (superCompare!=0){
+			return superCompare;
+		}
+		else{
+			return o1.getType().getName().compareTo(o2.getType().getName());
+		}
+		
+	}
+
+}

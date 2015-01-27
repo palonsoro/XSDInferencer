@@ -104,6 +104,7 @@ public class AttributeListInferencerTest {
 		when(config.getSimpleTypeInferencer()).thenReturn(XSDInferenceConfiguration.VALUE_SIMPLE_TYPE_INFERENCER_DEFAULTIMPL);
 		when(config.getAttributeListInferencer()).thenReturn(XSDInferenceConfiguration.VALUE_ATTRIBUTE_LIST_INFERENCER_DEFAULTIMPL);
 		when(config.getGenerateEnumerations()).thenReturn(false);
+		when(config.getWorkingFormat()).thenReturn("xml");
 		
 //		File binRoot= new File(getClass().getResource("/").getFile());
 //		String pathToProperties=binRoot.getParent()+"/src/main/resources/inferenceConfiguration.properties";

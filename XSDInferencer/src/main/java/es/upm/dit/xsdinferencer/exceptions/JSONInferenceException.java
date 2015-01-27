@@ -15,37 +15,34 @@ limitations under the License.
 */
 package es.upm.dit.xsdinferencer.exceptions;
 
-import es.upm.dit.xsdinferencer.XSDInferenceConfiguration;
-
 /**
- * Base class for exceptions related to the inference configuration
+ * Base class for exceptions thrown by XSDInferencer while performing a JSON inference.
  * 
  * @author Pablo Alonso Rodriguez (Center for Open Middleware)
- * @see XSDInferenceConfiguration
  */
-public class XSDConfigurationException extends XSDInferencerException {
+public class JSONInferenceException extends XSDInferencerException {
 
 	/**
 	 * UID for serialization
 	 */
 	private static final long serialVersionUID = 1L;
 
-	public XSDConfigurationException() {
+	public JSONInferenceException() {
 	}
 
-	public XSDConfigurationException(String message) {
+	public JSONInferenceException(String message) {
 		super(message);
 	}
 
-	public XSDConfigurationException(Throwable cause) {
+	public JSONInferenceException(Throwable cause) {
 		super(cause);
 	}
 
-	public XSDConfigurationException(String message, Throwable cause) {
+	public JSONInferenceException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
-	protected XSDConfigurationException(String message, Throwable cause,
+	protected JSONInferenceException(String message, Throwable cause,
 			boolean enableSuppression, boolean writableStackTrace) {
 		super(message, cause, enableSuppression, writableStackTrace);
 	}

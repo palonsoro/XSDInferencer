@@ -23,8 +23,10 @@ import org.jdom2.output.Format;
 import org.jdom2.output.Format.TextMode;
 import org.jdom2.output.LineSeparator;
 import org.jdom2.output.XMLOutputter;
+import org.json.JSONObject;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 
 /**
  * This class contains the results of the inference and allows to query them in many formats 
@@ -36,7 +38,17 @@ public class Results {
 	/**
 	 * The XSD documents inferred, as JDOM2 {@link Document} objects (keys are file names).
 	 */
-	private Map<String,Document> schemas;
+	private Map<String,Document> xmlSchemas=null;
+	
+	/**
+	 * The JSON Schema documents inferred, as {@link JSONObject} objects (keys are file names).
+	 */
+	private Map<String,JSONObject> jsonSchemas=null;
+	
+	/**
+	 * How many spaces are added to each indentation level while pretty-printing JSON
+	 */
+	protected static final int JSON_PRETTY_PRINT_INDENT_FACTOR = 1;
 	
 	/**
 	 * The statistics documents generated, as JDOM2 {@link Document} objects (keys are file names). 
@@ -46,34 +58,84 @@ public class Results {
 	private Map<String,Document> statisticsDocuments;
 		
 	/**
-	 * Default constructor
-	 * @param schemas the inferred schema documents
+	 * Default constructor for XML inference
+	 * @param xmlSchemas the inferred schema documents
 	 * @param statistics the statistics
 	 */
-	public Results(Map<String, Document> schemas,
+	public Results(Map<String, Document> xmlSchemas,
 			Map<String, Document> statistics) {
-		this.schemas = schemas;
+				this(xmlSchemas, null, statistics);
+			}
+
+
+	/**
+	 * Default constructor
+	 * @param xmlSchemas the inferred XML Schema documents (null when inferring JSON)
+	 * @param jsonSchemas the inferred JSON Schema documents
+	 * @param statistics the statistics
+	 */
+	public Results(Map<String, Document> xmlSchemas,
+			Map<String, JSONObject> jsonSchemas, Map<String, Document> statistics) {
+		this.xmlSchemas = xmlSchemas;
 		this.statisticsDocuments = statistics;
+		this.jsonSchemas=jsonSchemas;
+	}
+	
+	/**
+	 * Default constructor
+	 * @param jsonSchemas the inferred JSON Schema documents
+	 */
+	public Results(Map<String, JSONObject> jsonSchemas) {
+		this(null,jsonSchemas,null);
+	}
+	
+	
+	/**
+	 * This method returns the XML schemas as a {@link Map} between the name that the XSD file should have 
+	 * (although no file is created here) and the JDOM2 {@link Document} that describes the XSD. 
+	 * @return an {@link ImmutableMap} between suggested file names and the JDOM2 {@link Document} with the schema content.
+	 */
+	public Map<String,Document> getXSDsAsXMLs() {
+		return ImmutableMap.copyOf(xmlSchemas);
+	}
+	
+	/**
+	 * This method returns the JSON schemas as a {@link Map} between the name that the JSON Schema file should have 
+	 * (although no file is created here) and the {@link JSONObject} with the schema content. 
+	 * @return an {@link ImmutableMap} between suggested file names and the JDOM2 {@link Document} objects which contain the XSDs.
+	 */
+	public Map<String, JSONObject> getJsonSchemasAsJsonObjects() {
+		return jsonSchemas;
 	}
 
 	/**
-	 * This method returns the schemas as a {@link Map} between the name that the XSD file should have 
-	 * (although no file is created here) and the JDOM2 {@link Document} that describes the XSD. 
-	 * @return an {@link ImmutableMap} between suggested file names and the JDOM2 {@link Document} objects which contain the XSDs.
+	 * This method returns the schemas as a {@link Map} between the name that each XSD file should have 
+	 * (although no file is created here) and strings with their contents. 
+	 * @return an {@link ImmutableMap} between suggested file names and the strings with the contents of the schemas.
 	 */
-	public Map<String,Document> getSchemasAsXML() {
-		return ImmutableMap.copyOf(schemas);
+	public Map<String,String> getXSDsAsStrings() {
+		if(xmlSchemas==null){
+			return null;
+		} else {
+			return getStringMapFromXMLMap(xmlSchemas,TextMode.TRIM);
+		}
 	
 	}
 	
 	/**
-	 * This method returns the schemas as a {@link Map} between the name that the XSD file should have 
+	 * This method returns the schemas as a {@link Map} between the name that each JSON Schema file should have 
 	 * (although no file is created here) and strings with their contents. 
-	 * @return an {@link ImmutableMap} between suggested file names and the strings with the contents of the XSDs.
+	 * @return an {@link ImmutableMap} between suggested file names and the strings with the contents of the schemas (null if jsonSchemas is null).
 	 */
-	public Map<String,String> getSchemasAsXMLStrings() {
-		return getStringMap(schemas,TextMode.TRIM);
-	
+	public Map<String,String> getJsonSchemasAsStrings()	{
+		if(jsonSchemas==null){
+			return null;
+		}
+		Builder<String, String> resultBuilder = ImmutableMap.builder();
+		jsonSchemas.forEach((String k, JSONObject v) -> 
+			resultBuilder.put(k, v.toString(JSON_PRETTY_PRINT_INDENT_FACTOR))
+		);
+		return resultBuilder.build();
 	}
 
 	/**
@@ -82,9 +144,12 @@ public class Results {
 	 * The XMLs are generated using the format returned by {@link Format#getPrettyFormat()} and the system line separator. 
 	 * For more information about this, see {@link Format}.
 	 * @param inputMap a map between Strings and Documents
-	 * @return a map between the Strings and the String representation of the documents.
+	 * @return a map between the Strings and the String representation of the documents (null if inputMap is null).
 	 */
-	private Map<String, String> getStringMap(Map<String,Document> inputMap,TextMode textMode) {
+	private Map<String, String> getStringMapFromXMLMap(Map<String,Document> inputMap,TextMode textMode) {
+		if(inputMap==null){
+			return null;
+		}
 		Map<String,String> results = new HashMap<>(inputMap.size());
 		Format xmlFormat = Format.getPrettyFormat();
 		xmlFormat.setLineSeparator(LineSeparator.SYSTEM);
@@ -113,12 +178,13 @@ public class Results {
 	 * (although no file is created here) and strings with their contents. 
 	 * @return an {@link ImmutableMap} between suggested file names and the strings with the contents of the statistics.
 	 */
-	public Map<String,String> getStatisticsAsXMLStrings() {
-		return getStringMap(statisticsDocuments,TextMode.PRESERVE);
+	public Map<String,String> getStatisticsAsStrings() {
+		if(statisticsDocuments==null){
+			return null;
+		} else {
+			return getStringMapFromXMLMap(statisticsDocuments,TextMode.PRESERVE);
+		}
 	
 	}
 	
-//	public Map<String,String> getStatisticsAsCSVStrings() {
-//		throw new UnsupportedOperationException();
-//	}
 }

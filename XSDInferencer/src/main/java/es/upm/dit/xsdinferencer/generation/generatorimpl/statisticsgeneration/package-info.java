@@ -15,6 +15,8 @@ limitations under the License.
 */
 /**
  * Provides the implementation of the statistics generation submodule of the generation module.
- * The implementation must be built by means of {@link es.upm.dit.xsdinferencer.generation.generatorimpl.statisticsgeneration.StatisticResultsDocGeneratorFactory}
+ * The implementation must be built by means of {@link es.upm.dit.xsdinferencer.generation.generatorimpl.statisticsgeneration.StatisticResultsDocGeneratorFactory}.
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer.generation.generatorimpl.statisticsgeneration;

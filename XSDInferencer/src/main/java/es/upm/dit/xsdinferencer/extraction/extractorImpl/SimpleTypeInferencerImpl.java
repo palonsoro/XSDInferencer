@@ -262,19 +262,26 @@ public class SimpleTypeInferencerImpl implements SimpleTypeInferencer {
 	 * @return true if the type is a boolean, false if not
 	 */
 	private boolean checkXSBoolean(){
-		boolean noTrueFalseStringFound=true; //If there are only 0 or 1 values, it may be an xs:integer.
+		boolean noTrueFalseStringFound=true; // If there are only 0 or 1 values, it may be an xs:integer.
+		boolean zeroOrOneNumbersFound=false; // Although XSD allows them as boolean values, JSON Schema does not.
 		for(String value:valueOccurrences.keySet()){
 			if(valueOccurrences.get(value).equals(0))
 				continue;
 			if(!(value.trim().matches(BUILTIN_REGEX_XSBOOLEAN)))
 				return false;
-			if((value.trim().equals("true")||value.trim().equals("false")))
+			if((value.trim().equals("true")||value.trim().equals("false"))){
 					noTrueFalseStringFound=false;
+			} else if (value.trim().equals("0") || value.trim().equals("1")) {
+				zeroOrOneNumbersFound=true;
+			}
 		}
-		if(!noTrueFalseStringFound)
+//		if(!noTrueFalseStringFound && !(config.getWorkingFormat().equals("json") && zeroOrOneNumbersFound)){
+		if(!noTrueFalseStringFound && !(config.getWorkingFormat().equals("json") && zeroOrOneNumbersFound)){
 			return true;
-		else 
+		}
+		else{ 
 			return false;
+		}
 	}
 	
 	/**

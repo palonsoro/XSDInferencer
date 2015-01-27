@@ -14,6 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 /**
- * Provides tests for classes of the package es.upm.dit.xsdinferencer.generation.generatorimpl.xsdgeneration
+ * Provides tests for classes of the package es.upm.dit.xsdinferencer.generation.generatorimpl.schemageneration
  */
 package es.upm.dit.xsdinferencer.tests.generation.generatorimpl.xsdgeneration;

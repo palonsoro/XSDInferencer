@@ -16,5 +16,7 @@ limitations under the License.
 /**
  * Provides implementation for all the optimizers which belong to the optimization submodule of the 
  * converter module. 
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer.conversion.converterimpl.optimization;

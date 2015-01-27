@@ -1195,6 +1195,7 @@ public class TypesExtractorImplTest {
 		when(config1.getAttributeListInferencer()).thenReturn(XSDInferenceConfiguration.VALUE_ATTRIBUTE_LIST_INFERENCER_DEFAULTIMPL);
 		when(config1.getGenerateEnumerations()).thenReturn(false);
 		when(config1.getTypeNameInferencer()).thenReturn(oneLocalTypeNameInferencer);
+		when(config1.getWorkingFormat()).thenReturn("xml");
 		
 		testingXMLDocuments1=new ArrayList<Document>(testingXMLs1.length);
 		
@@ -1217,6 +1218,7 @@ public class TypesExtractorImplTest {
 		when(config2y3.getAttributeListInferencer()).thenReturn(XSDInferenceConfiguration.VALUE_ATTRIBUTE_LIST_INFERENCER_DEFAULTIMPL);
 		when(config2y3.getGenerateEnumerations()).thenReturn(false);
 		when(config2y3.getTypeNameInferencer()).thenReturn(nameTypeNameInferencer);
+		when(config2y3.getWorkingFormat()).thenReturn("xml");
 		
 		testingXMLDocuments2=new ArrayList<Document>(testingXMLs2.length);
 		for(int i=0;i<testingXMLs2.length;i++){
@@ -2906,7 +2908,7 @@ public class TypesExtractorImplTest {
 		
 		Table<String,String,SchemaElement> elements =  schema.getElements();
 		
-		assertEquals(13,elements.size());
+		assertEquals(7,elements.size());
 		assertEquals(7,ImmutableSet.copyOf(elements.values()).size());
 		
 		SchemaElement elementRoot=elements.get("", "root");
@@ -2916,28 +2918,28 @@ public class TypesExtractorImplTest {
 		assertEquals("_root",elementRoot.getType().getName());
 		assertTrue(elementRoot.isValidRoot());
 		
-		SchemaElement elementRootA=elements.get("", "_root-a");
+		SchemaElement elementRootA=elements.get("", "a");
 		assertNotNull(elementRootA);
 		assertEquals("a",elementRootA.getName());
 		assertEquals("",elementRootA.getNamespace());
 		assertEquals("_a",elementRootA.getType().getName());
 		assertFalse(elementRootA.isValidRoot());
 		
-		SchemaElement elementRootB=elements.get("", "_root-b");
+		SchemaElement elementRootB=elements.get("", "b");
 		assertNotNull(elementRootB);
 		assertEquals("b",elementRootB.getName());
 		assertEquals("",elementRootB.getNamespace());
 		assertEquals("_b",elementRootB.getType().getName());
 		assertFalse(elementRootB.isValidRoot());
 		
-		SchemaElement elementRootC=elements.get("", "_root-c");
+		SchemaElement elementRootC=elements.get("", "c");
 		assertNotNull(elementRootC);
 		assertEquals("c",elementRootC.getName());
 		assertEquals("",elementRootC.getNamespace());
 		assertEquals("_c",elementRootC.getType().getName());
 		assertFalse(elementRootC.isValidRoot());
 		
-		SchemaElement elementRootD=elements.get("", "_root-d");
+		SchemaElement elementRootD=elements.get("", "d");
 		assertNotNull(elementRootD);
 		assertEquals("d",elementRootD.getName());
 		assertEquals("",elementRootD.getNamespace());
@@ -2951,63 +2953,63 @@ public class TypesExtractorImplTest {
 		assertEquals("_raiz",elementRaiz.getType().getName());
 		assertTrue(elementRaiz.isValidRoot());
 		
-		SchemaElement elementRaizA=elements.get("", "_raiz-a");
-		assertNotNull(elementRaizA);
-		assertEquals("a",elementRaizA.getName());
-		assertEquals("",elementRaizA.getNamespace());
-		assertEquals("_a",elementRaizA.getType().getName());
-		assertFalse(elementRaizA.isValidRoot());
+//		SchemaElement elementRaizA=elements.get("", "a");
+//		assertNotNull(elementRaizA);
+//		assertEquals("a",elementRaizA.getName());
+//		assertEquals("",elementRaizA.getNamespace());
+//		assertEquals("_a",elementRaizA.getType().getName());
+//		assertFalse(elementRaizA.isValidRoot());
+//		
+//		SchemaElement elementRaizB=elements.get("", "b");
+//		assertNotNull(elementRaizB);
+//		assertEquals("b",elementRaizB.getName());
+//		assertEquals("",elementRaizB.getNamespace());
+//		assertEquals("_b",elementRaizB.getType().getName());
+//		assertFalse(elementRaizB.isValidRoot());
+//		
+//		SchemaElement elementRaizC=elements.get("", "c");
+//		assertNotNull(elementRaizC);
+//		assertEquals("c",elementRaizC.getName());
+//		assertEquals("",elementRaizC.getNamespace());
+//		assertEquals("_c",elementRaizC.getType().getName());
+//		assertFalse(elementRaizC.isValidRoot());
+//		
+//		SchemaElement elementRaizD=elements.get("", "d");
+//		assertNotNull(elementRaizD);
+//		assertEquals("d",elementRaizD.getName());
+//		assertEquals("",elementRaizD.getNamespace());
+//		assertEquals("_d",elementRaizD.getType().getName());
+//		assertFalse(elementRaizD.isValidRoot());
 		
-		SchemaElement elementRaizB=elements.get("", "_raiz-b");
-		assertNotNull(elementRaizB);
-		assertEquals("b",elementRaizB.getName());
-		assertEquals("",elementRaizB.getNamespace());
-		assertEquals("_b",elementRaizB.getType().getName());
-		assertFalse(elementRaizB.isValidRoot());
-		
-		SchemaElement elementRaizC=elements.get("", "_raiz-c");
-		assertNotNull(elementRaizC);
-		assertEquals("c",elementRaizC.getName());
-		assertEquals("",elementRaizC.getNamespace());
-		assertEquals("_c",elementRaizC.getType().getName());
-		assertFalse(elementRaizC.isValidRoot());
-		
-		SchemaElement elementRaizD=elements.get("", "_raiz-d");
-		assertNotNull(elementRaizD);
-		assertEquals("d",elementRaizD.getName());
-		assertEquals("",elementRaizD.getNamespace());
-		assertEquals("_d",elementRaizD.getType().getName());
-		assertFalse(elementRaizD.isValidRoot());
-		
-		SchemaElement elementBE=elements.get("", "_b-e");
+		SchemaElement elementBE=elements.get("", "e");
 		assertNotNull(elementBE);
 		assertEquals("e",elementBE.getName());
 		assertEquals("",elementBE.getNamespace());
 		assertEquals("_e",elementBE.getType().getName());
 		assertFalse(elementBE.isValidRoot());
 		
-		SchemaElement elementCE=elements.get("", "_c-e");
-		assertNotNull(elementCE);
-		assertEquals("e",elementCE.getName());
-		assertEquals("",elementCE.getNamespace());
-		assertEquals("_e",elementCE.getType().getName());
-		assertFalse(elementCE.isValidRoot());
+//		SchemaElement elementCE=elements.get("", "e");
+//		assertNotNull(elementCE);
+//		assertEquals("e",elementCE.getName());
+//		assertEquals("",elementCE.getNamespace());
+//		assertEquals("_e",elementCE.getType().getName());
+//		assertFalse(elementCE.isValidRoot());
+//		
+//		SchemaElement elementDE=elements.get("", "e");
+//		assertNotNull(elementDE);
+//		assertEquals("e",elementDE.getName());
+//		assertEquals("",elementDE.getNamespace());
+//		assertEquals("_e",elementDE.getType().getName());
+//		assertFalse(elementDE.isValidRoot());
 		
-		SchemaElement elementDE=elements.get("", "_d-e");
-		assertNotNull(elementDE);
-		assertEquals("e",elementDE.getName());
-		assertEquals("",elementDE.getNamespace());
-		assertEquals("_e",elementDE.getType().getName());
-		assertFalse(elementDE.isValidRoot());
-		
-		assertEquals(elementRaizA,elementRootA);
-		assertEquals(elementRaizB,elementRootB);
-		assertEquals(elementRaizC,elementRootC);
-		assertEquals(elementRaizD,elementRootD);
-		
-		assertEquals(elementBE, elementCE);
-		assertEquals(elementBE, elementDE);
-		assertEquals(elementCE, elementDE);
+//		assertEquals(elementRaizA,elementRootA);
+//		assertEquals(elementRaizB,elementRootB);
+//		assertEquals(elementRaizC,elementRootC);
+//		assertEquals(elementRaizD,elementRootD);
+//		
+//		assertEquals(elementBE, elementCE);
+//		assertEquals(elementBE, elementDE);
+//		assertEquals(elementCE, elementDE);
 		
 	}
 	
@@ -3098,10 +3100,10 @@ public class TypesExtractorImplTest {
 		assertEquals(6,complexTypeRootAutomaton.nodeCount());
 		assertEquals(5,complexTypeRootAutomaton.edgeCount());
 		
-		SchemaElement nodeA=schema.getElements().get("", "_root-a");
-		SchemaElement nodeB=schema.getElements().get("", "_root-b");
-		SchemaElement nodeC=schema.getElements().get("", "_root-c");
-		SchemaElement nodeD=schema.getElements().get("", "_root-d");
+		SchemaElement nodeA=schema.getElements().get("", "a");
+		SchemaElement nodeB=schema.getElements().get("", "b");
+		SchemaElement nodeC=schema.getElements().get("", "c");
+		SchemaElement nodeD=schema.getElements().get("", "d");
 		
 		assertTrue(complexTypeRootAutomaton.containsNode(initialState));
 		assertEquals(initialState,complexTypeRootAutomaton.getInitialState());
@@ -3192,10 +3194,10 @@ public class TypesExtractorImplTest {
 		assertEquals(6,complexTypeRaizAutomaton.nodeCount());
 		assertEquals(5,complexTypeRaizAutomaton.edgeCount());
 		
-		SchemaElement nodeA=schema.getElements().get("", "_raiz-a");
-		SchemaElement nodeB=schema.getElements().get("", "_raiz-b");
-		SchemaElement nodeC=schema.getElements().get("", "_raiz-c");
-		SchemaElement nodeD=schema.getElements().get("", "_raiz-d");
+		SchemaElement nodeA=schema.getElements().get("", "a");
+		SchemaElement nodeB=schema.getElements().get("", "b");
+		SchemaElement nodeC=schema.getElements().get("", "c");
+		SchemaElement nodeD=schema.getElements().get("", "d");
 		
 		assertTrue(complexTypeRaizAutomaton.containsNode(initialState));
 		assertEquals(initialState,complexTypeRaizAutomaton.getInitialState());
@@ -3329,7 +3331,7 @@ public class TypesExtractorImplTest {
 		ComplexType complexTypeB=schema.getComplexTypes().get("_b");
 		assertEquals("_b",complexTypeB.getName());
 		
-		SchemaElement elementE = schema.getElements().get("", "_b-e");
+		SchemaElement elementE = schema.getElements().get("", "e");
 		
 		//Source element
 		
@@ -3399,7 +3401,7 @@ public class TypesExtractorImplTest {
 		ComplexType complexTypeC=schema.getComplexTypes().get("_c");
 		assertEquals("_c",complexTypeC.getName());
 		
-		SchemaElement elementE = schema.getElements().get("", "_c-e");
+		SchemaElement elementE = schema.getElements().get("", "e");
 		
 		//Source element
 		
@@ -3469,7 +3471,7 @@ public class TypesExtractorImplTest {
 		ComplexType complexTypeD=schema.getComplexTypes().get("_d");
 		assertEquals("_d",complexTypeD.getName());
 		
-		SchemaElement elementE = schema.getElements().get("", "_d-e");
+		SchemaElement elementE = schema.getElements().get("", "e");
 		
 		//Source element
 		
@@ -3965,10 +3967,10 @@ public class TypesExtractorImplTest {
 		Statistics statistics = schema.getStatistics();
 		
 		Table<String,String,SchemaElement> elements =  schema.getElements();
-		SchemaElement elementRootA=elements.get("", "_root-a");
-		SchemaElement elementRootB=elements.get("", "_root-b");
-		SchemaElement elementRootC=elements.get("", "_root-c");
-		SchemaElement elementRootD=elements.get("", "_root-d");
+		SchemaElement elementRootA=elements.get("", "a");
+		SchemaElement elementRootB=elements.get("", "b");
+		SchemaElement elementRootC=elements.get("", "c");
+		SchemaElement elementRootD=elements.get("", "d");
 		
 		ComplexTypeStatisticsEntry complexTypeRootStatisticsEntry = statistics.getComplexTypeStatisticsEntryByName("_root");
 		assertEquals(2, complexTypeRootStatisticsEntry.getInputDocumentsCount());
@@ -4052,10 +4054,10 @@ public class TypesExtractorImplTest {
 		Statistics statistics = schema.getStatistics();
 		
 		Table<String,String,SchemaElement> elements =  schema.getElements();
-		SchemaElement elementRaizA=elements.get("", "_raiz-a");
-		SchemaElement elementRaizB=elements.get("", "_raiz-b");
-		SchemaElement elementRaizC=elements.get("", "_raiz-c");
-		SchemaElement elementRaizD=elements.get("", "_raiz-d");
+		SchemaElement elementRaizA=elements.get("", "a");
+		SchemaElement elementRaizB=elements.get("", "b");
+		SchemaElement elementRaizC=elements.get("", "c");
+		SchemaElement elementRaizD=elements.get("", "d");
 		
 		Table <String,String,SchemaAttribute> attributes = schema.getAttributes();
 		SchemaAttribute attributeAttr=attributes.get("","_raiz-attr");
@@ -4168,7 +4170,7 @@ public class TypesExtractorImplTest {
 		Statistics statistics = schema.getStatistics();
 		
 		Table<String,String,SchemaElement> elements =  schema.getElements();
-		SchemaElement elementRaizA=elements.get("", "_raiz-a");
+		SchemaElement elementRaizA=elements.get("", "a");
 
 		ComplexTypeStatisticsEntry complexTypeAStatisticsEntry = statistics.getComplexTypeStatisticsEntryByName("_a");
 		assertEquals(2, complexTypeAStatisticsEntry.getInputDocumentsCount());
@@ -4227,8 +4229,8 @@ public class TypesExtractorImplTest {
 		Statistics statistics = schema.getStatistics();
 		
 		Table<String,String,SchemaElement> elements =  schema.getElements();
-		SchemaElement elementRaizB=elements.get("", "_raiz-b");
-		SchemaElement elementBE=elements.get("", "_b-e");
+		SchemaElement elementRaizB=elements.get("", "b");
+		SchemaElement elementBE=elements.get("", "e");
 
 		ComplexTypeStatisticsEntry complexTypeBStatisticsEntry = statistics.getComplexTypeStatisticsEntryByName("_b");
 		assertEquals(2, complexTypeBStatisticsEntry.getInputDocumentsCount());
@@ -4300,8 +4302,8 @@ public class TypesExtractorImplTest {
 		Statistics statistics = schema.getStatistics();
 		
 		Table<String,String,SchemaElement> elements =  schema.getElements();
-		SchemaElement elementRaizC=elements.get("", "_raiz-c");
-		SchemaElement elementCE=elements.get("", "_c-e");
+		SchemaElement elementRaizC=elements.get("", "c");
+		SchemaElement elementCE=elements.get("", "e");
 		
 		ComplexTypeStatisticsEntry complexTypeCStatisticsEntry = statistics.getComplexTypeStatisticsEntryByName("_c");
 		assertEquals(2, complexTypeCStatisticsEntry.getInputDocumentsCount());
@@ -4373,7 +4375,7 @@ public class TypesExtractorImplTest {
 		Statistics statistics = schema.getStatistics();
 		
 		Table<String,String,SchemaElement> elements =  schema.getElements();
-		SchemaElement elementDE=elements.get("", "_d-e");
+		SchemaElement elementDE=elements.get("", "e");
 		
 		ComplexTypeStatisticsEntry complexTypeDStatisticsEntry = statistics.getComplexTypeStatisticsEntryByName("_d");
 		assertEquals(2, complexTypeDStatisticsEntry.getInputDocumentsCount());

@@ -43,6 +43,7 @@ import es.upm.dit.xsdinferencer.datastructures.SchemaNode;
 import es.upm.dit.xsdinferencer.datastructures.SimpleType;
 import es.upm.dit.xsdinferencer.extraction.SimpleTypeInferencer;
 import es.upm.dit.xsdinferencer.extraction.extractorImpl.InferencersFactory;
+import es.upm.dit.xsdinferencer.extraction.extractorImpl.NameTypeNameInferencer;
 import es.upm.dit.xsdinferencer.merge.AttributeListComparator;
 import es.upm.dit.xsdinferencer.merge.ChildrenPatternComparator;
 import es.upm.dit.xsdinferencer.merge.EnumComparator;
@@ -121,7 +122,7 @@ public class TypeMergerImpl implements TypeMerger {
 		
 		clearAll();
 		
-		boolean needsSameNameForcedMerge=(!configuration.getStrictValidRootDefinitionWorkaround())&&
+		boolean needsSameNameForcedMerge=(!configuration.getStrictValidRootDefinitionWorkaround() && !(configuration.getTypeNameInferencer() instanceof NameTypeNameInferencer))&&
 				((schema.getNamespacesToPossiblePrefixMappingUnmodifiable().keySet().size()-configuration.getSkipNamespaces().size())>1);
 //		boolean needsSameNameForcedMerge=false;
 		boolean forcedSimpleTypeMergedAlreadyWarned=false;

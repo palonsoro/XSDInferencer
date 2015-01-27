@@ -18,5 +18,7 @@ limitations under the License.
  * The main class that contains all the statistics information is {@link Statistics}.
  * An object of that class will be present at the {@link es.upm.dit.xsdinferencer.datastructures.Schema} object 
  * used during an inference process, in order to store the statistic information gathered during that inference.
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer.statistics;

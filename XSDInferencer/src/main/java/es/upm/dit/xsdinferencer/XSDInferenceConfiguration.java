@@ -27,6 +27,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import org.apache.xerces.util.XML11Char;
+import org.jdom2.Namespace;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
@@ -65,11 +66,12 @@ import es.upm.dit.xsdinferencer.merge.mergerimpl.enumeration.MinIntersectionUnid
  *
  */
 public class XSDInferenceConfiguration {
-	
 	/**
 	 * Main namespace of the inference.
 	 * If it is not set, it will be guessed at runtime (look at {@link Schema#guessMainNamespace(XSDInferenceConfiguration)} for details).
 	 * A skipped namespace may never be the main namespace.
+	 * 
+	 * Ignored at JSON inference.
 	 */
 	private String mainNamespace = null;
 	/**
@@ -80,6 +82,8 @@ public class XSDInferenceConfiguration {
 	 * It is important to remark, that XML Schema instance namespace (http://www.w3.org/2001/XMLSchema-instance) 
 	 * WILL always be skipped, regardless of it is present at this list or not (in fact, it will be completely ignored 
 	 * by the inferencer).
+	 * 
+	 * Ignored at JSON inference.
 	 */
 	private List<String> skipNamespaces = new ArrayList<String>();
 	/**
@@ -87,11 +91,11 @@ public class XSDInferenceConfiguration {
 	 */
 	private TypeNameInferencer typeNameInferencer;
 	/**
-	 * The simple type inferencer to use (the implementation to instantiate)
+	 * The simple type inferencer to use (the implementation to instantiate).
 	 */
 	private String simpleTypeInferencer = VALUE_SIMPLE_TYPE_INFERENCER_DEFAULTIMPL;
 	/**
-	 * The attribute list inferencer to use
+	 * The attribute list inferencer to use.
 	 */
 	private String attributeListInferencer = VALUE_ATTRIBUTE_LIST_INFERENCER_DEFAULTIMPL;
 	/**
@@ -133,7 +137,7 @@ public class XSDInferenceConfiguration {
 	/**
 	 * Attribute comparator that compares the attributes list of two complex types 
 	 * and decides if they are similar enough, according to its own criterion.
-	 *This one is the one used in the first phase of type merge, when complex types such that 
+	 * This one is the one used in the first phase of type merge, when complex types such that 
 	 * some of their source elements have the same name are mixed after comparing them with different comparators.
 	 * If childrenPatternComparator or attributeComparator were null, there would be no merge and this 
 	 * setting would not have any effect.
@@ -179,18 +183,24 @@ public class XSDInferenceConfiguration {
 	 * If this flag was false when there are multiple namespaces, the only allowed TypeNameInferencer 
 	 * would be NameTypeInferencer because it is not possible to declare two global elements with the 
 	 * same name or a global element with two types.
+	 * 
+	 * Ignored at JSON inference.
 	 */
 	private boolean strictValidRootDefinitionWorkaround = true;
 	/**
 	 * If this flag is true, elements are generated globally in the XSD and referenced with ref when necessary.
 	 * If this flag was true, the only allowed TypeNameInferencer would be NameTypeInferencer because it is 
 	 * not possible to declare two global elements with the same name or a global element with two types. 
+	 * 
+	 * Ignored at JSON inference.
 	 */
 	private boolean elementsGlobal = false;
 	/**
 	 * If this flag is true, complexType tags will be declared globally and referenced when necessary. 
 	 * If this flag is false, each complexType will be included into each element tag which represents 
 	 * an element of that complex type.
+	 * 
+	 * Ignored at JSON inference.
 	 */
 	private boolean complexTypesGlobal = true;
 	/**
@@ -199,10 +209,12 @@ public class XSDInferenceConfiguration {
 	 * If this flag is false, each element or attribute whose simpleType is an inferred enumeration 
 	 * will include into its corresponding tag a simpleType tag describing the enumeration.
 	 * No simpleType tag will be created to refer to a built-in type. 
+	 * 
+	 * Ignored at JSON inference.
 	 */
 	private boolean simpleTypesGlobal = true;
 	/**
-	 * Separator used to build type names based on ancestors and in some other situations. 
+	 * Separator used to build type names based on ancestors and in some other information. 
 	 * For example, a KLocalTypeNameInferencer with k=1 would build a type name like "ancestor-element" 
 	 * if typeNamesSeparator is "-".
 	 * It must be a valid NCName substring (made of non-first characters allowed in NCNames).  
@@ -216,6 +228,54 @@ public class XSDInferenceConfiguration {
 	 * It must be a valid NCName substring (made of non-first characters allowed in NCNames).
 	 */
 	private String mergedTypesSeparator = "_and_";
+	
+	/**
+	 * This is the working format of the inferencer. Two values are allowed:
+	 * <ul>
+	 * <li>xml: Input files are XML files and output files are XSDs (default value)</li>
+	 * <li>json: Input files are JSON files and the output is a single JSON Schema file</li>
+	 * </ul>
+	 */
+	private String workingFormat = "xml";
+	/**
+	 * Prefix to escape keys at JSON objects matching ARRAY_ELEMENT_NAME, to prevent problems.
+	 */
+	public static final String ARRAY_ELEMENT_ESCAPING_PREFIX = "a";
+	/**
+	 * Element name for JSON objects created to store arrays to prevent strange behaviors while nesting arrays.
+	 */
+	public static final String ARRAY_ELEMENT_NAME = "array";
+	/**
+	 * Name of the root element using to enclose results from converting XML to JSON. 
+	 * This is necessary to ensure that the resulting XML is well-formed. 
+	 * Namespace will be different depending on whether the element comes from 
+	 * an array or an object.
+	 */
+	public static final String XML_ROOT_NAME = "root";
+	/**
+	 * This namespace acts as a mark to point that an element of an XML created
+	 * from a JSON is the array root of a JSON document. This helps to prevent that a
+	 * key called like {@link XML_ROOT_NAME} produce a hell-mismatch in our internal
+	 * XML-thinking during JSON Schema inference
+	 */
+	public static final Namespace NAMESPACE_ROOT_ARRAY = Namespace
+			.getNamespace("rootArray","http://www.dit.upm.es/xsdinferencer/json/rootArray");
+	/**
+	 * This namespace acts as a mark to point that an element of an XML created
+	 * from a JSON is the object root of a JSON document. This helps to prevent that a
+	 * key called like {@link XML_ROOT_NAME} produce a hell-mismatch in our internal
+	 * XML-thinking during JSON Schema inference
+	 */
+	public static final Namespace NAMESPACE_ROOT_OBJECT = Namespace
+			.getNamespace("rootObject","http://www.dit.upm.es/xsdinferencer/json/rootObject");
+	/**
+	 * Namespace to distinguish between <array/> elements comming from an 
+	 * array which is not a value for a key (for instance, inside other arrays 
+	 * or as a root) from <array/> elements comming from values of an "array" key 
+	 * of a JSON object.
+	 */
+	public static final Namespace NAMESPACE_ARRAY_ELEMENT = Namespace
+			.getNamespace("arrayElement","http://www.dit.upm.es/xsdinferencer/json/array");
 	
 	/**
 	 * XSI (XML Schema Instance) namespace URI.
@@ -272,6 +332,7 @@ public class XSDInferenceConfiguration {
 	public static final String KEY_SIMPLE_TYPES_GLOBAL = "simpleTypesGlobal";
 	public static final String KEY_TYPE_NAMES_ANCESTORS_SEPARATOR = "typeNamesAncestorsSeparator";
 	public static final String KEY_MERGED_TYPES_SEPARATOR = "mergedTypesSeparator";
+	public static final String KEY_WORKING_FORMAT = "workingFormat";
 	//Special key to indicate via the command line the path at which the properties file that must be loaded as a configuration.
 	public static final String KEY_CONFIG_FILE = "configFile";
 	
@@ -295,6 +356,8 @@ public class XSDInferenceConfiguration {
 	public static final String VALUE_ENUMS_COMPARATOR_NO = "no";
 	public static final String VALUE_ENUMS_COMPARATOR_MIN_INTERSECTION_BIDIRECTIONAL="minIntersectionBidirectional";
 	public static final String VALUE_ENUMS_COMPARATOR_MIN_INTERSECTION_UNIDIRECTIONAL="minIntersectionUnidirectional";
+	public static final String VALUE_WORKING_FORMAT_XML = "xml";
+	public static final String VALUE_WORKING_FORMAT_JSON = "json";
 	
 	/**
 	 * Default constructor. It initializes the the default values
@@ -389,6 +452,11 @@ public class XSDInferenceConfiguration {
 		String readGenerateEnumerations = properties.getProperty(KEY_GENERATE_ENUMERATIONS);
 		if(readGenerateEnumerations!=null){
 			setGenerateEnumerations(readGenerateEnumerations);
+		}
+		
+		String readWorkingFormat = properties.getProperty(KEY_WORKING_FORMAT);
+		if(readWorkingFormat!=null){
+			setWorkingFormat(readWorkingFormat);
 		}
 		
 		String readMinNumberOfDistinctValuesToEnum = properties.getProperty(KEY_MIN_NUMBER_OF_DISTINCT_VALUES_TO_ENUM);
@@ -641,6 +709,11 @@ public class XSDInferenceConfiguration {
 		String readMainNamespace = getParamValue(KEY_MAIN_NAMESPACE, parameterList);
 		if(readMainNamespace!=null){
 			mainNamespace=readMainNamespace;
+		}
+		
+		String readWorkingFormat = getParamValue(KEY_WORKING_FORMAT, parameterList);
+		if (readWorkingFormat!=null) {
+			setWorkingFormat(readWorkingFormat);
 		}
 		
 		Set<String> foundSkipNamespaces = getParamValues(KEY_MULTIPLE_SKIP_NAMESPACES, parameterList);
@@ -1485,5 +1558,23 @@ public class XSDInferenceConfiguration {
 	 */
 	public void setEnumsComparator(EnumComparator enumsComparator) {
 		this.enumsComparator = enumsComparator;
+	}
+
+	/**
+	 * @return the workingFormat
+	 */
+	public String getWorkingFormat() {
+		return workingFormat;
+	}
+
+	/**
+	 * @param workingFormat the workingFormat to set (only "xml" and "json" values are allowed and are converted to lower case)
+	 */
+	public void setWorkingFormat(String workingFormat) {
+		String workingFormatLC = workingFormat.toLowerCase();
+		if (!(workingFormatLC.equals(VALUE_WORKING_FORMAT_XML) || workingFormatLC.equals(VALUE_WORKING_FORMAT_JSON))){
+			throw new IllegalArgumentException("Provided value "+workingFormat+" is not either 'xml' or 'json' and it should.");
+		}
+		this.workingFormat = workingFormatLC;
 	}
 }

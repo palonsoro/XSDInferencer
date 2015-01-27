@@ -217,7 +217,16 @@ public class TypesExtractorImpl implements TypesExtractor {
 	}
 	
 	/**
+	 * Protected constructor only to allow subclasses to initialize data  
+	 * structures of the parent after doing some own processing.
+	 */
+	protected TypesExtractorImpl(){
+		
+	}
+
+	/**
 	 * Default constructor.
+	 * 
 	 * @param xmlDocuments A list of all the input XML Documents, as JDOM2 {@link Document} objects.
 	 * @param configuration the inference configuration
 	 */
@@ -228,11 +237,29 @@ public class TypesExtractorImpl implements TypesExtractor {
 	
 	/**
 	 * Default constructor with custom inferencers factory.
+	 * 
 	 * @param xmlDocuments A list of all the input XML Documents, as JDOM2 {@link Document} objects.
 	 * @param configuration the inference configuration
+	 * @param inferencersFactory {@link InferencersFactory} used to build {@link AttributeListInferencer} and {@link SimpleTypeInferencer} objects used.
 	 */
 	public TypesExtractorImpl(List<Document> xmlDocuments,
 			XSDInferenceConfiguration configuration, InferencersFactory inferencersFactory) {
+		initializeData(xmlDocuments, configuration, inferencersFactory);
+	}
+
+	/**
+	 * Method that actually initializes data. This is the code which normally should go on constructors. 
+	 * However, we have separated it to allow subclasses to initialize parameters after having performed 
+	 * some other own tasks. So, if a constructor on any subclass calls {@link TypesExtractorImpl#TypesExtractorImpl()} empty 
+	 * constructor, it must call this method in any moment.
+	 * 
+	 * @param xmlDocuments A list of all the input XML Documents, as JDOM2 {@link Document} objects.
+	 * @param configuration the inference configuration
+	 * @param inferencersFactory {@link InferencersFactory} used to build {@link AttributeListInferencer} and {@link SimpleTypeInferencer} objects used.
+	 */
+	protected void initializeData(List<Document> xmlDocuments,
+			XSDInferenceConfiguration configuration,
+			InferencersFactory inferencersFactory) {
 		checkNotNull(xmlDocuments,"'xmlDocuments' must not be null");
 		checkNotNull(configuration,"'configuration' must not be null");
 		this.xmlDocuments = xmlDocuments;
@@ -386,6 +413,9 @@ public class TypesExtractorImpl implements TypesExtractor {
 		//enclosingComplexType+typeNamesSeparator+elementName
 		//If the element is a suitable root, the key is the name of the element.
 		String schemaElementKey=(!enclosingComplexType.equals(""))?enclosingComplexType+configuration.getTypeNamesAncestorsSeparator()+element.getName():element.getName();
+		if(configuration.getTypeNameInferencer() instanceof NameTypeNameInferencer){
+			schemaElementKey=element.getName(); //If we use a name-based type inferencer, the key is the name and we avoid problems.
+		}
 		SchemaElement schemaElement = elements.get(element.getNamespaceURI(), schemaElementKey);
 		if(schemaElement==null){
 			schemaElement=new SchemaElement(element.getName(), element.getNamespaceURI(), complexType);//Complex type already not known.
@@ -422,6 +452,9 @@ public class TypesExtractorImpl implements TypesExtractor {
 			Element child = element.getChildren().get(i);
 			traverseElement(documentIndex, child, complexTypeName);
 			String childSchemaElementKey=complexTypeName+configuration.getTypeNamesAncestorsSeparator()+child.getName();
+			if(configuration.getTypeNameInferencer() instanceof NameTypeNameInferencer){
+				childSchemaElementKey=child.getName(); // If we use the name-based type name inferencer, the name is the key
+			}
 			SchemaElement childSchemaElement=elements.get(child.getNamespaceURI(), childSchemaElementKey);//The SchemaElement object does exist because the method traverseElement is called before this.
 //			if(i==0){
 //				automaton.addEdge(automaton.getInitialState(), childSchemaElement);

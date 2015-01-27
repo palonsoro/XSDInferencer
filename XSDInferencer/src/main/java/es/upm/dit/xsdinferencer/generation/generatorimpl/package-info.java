@@ -15,5 +15,7 @@ limitations under the License.
 */
 /**
  * Provides the implementation of the main submodule of the generator module
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer.generation.generatorimpl;

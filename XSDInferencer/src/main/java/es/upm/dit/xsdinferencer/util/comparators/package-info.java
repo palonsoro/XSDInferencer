@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 /**
- * Provides interfaces to the conversion module and its submodules.
- * 
+ * It provides name-based comparator singletons for some data structures. 
  * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
-package es.upm.dit.xsdinferencer.conversion;
+package es.upm.dit.xsdinferencer.util.comparators;

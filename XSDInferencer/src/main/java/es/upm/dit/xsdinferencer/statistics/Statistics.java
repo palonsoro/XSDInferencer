@@ -20,16 +20,20 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
-import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.RowSortedTable;
 import com.google.common.collect.Table;
+import com.google.common.collect.TreeBasedTable;
 
 import es.upm.dit.xsdinferencer.datastructures.ComplexType;
 import es.upm.dit.xsdinferencer.datastructures.SchemaElement;
+import es.upm.dit.xsdinferencer.util.comparators.ComplexTypeComparator;
+import es.upm.dit.xsdinferencer.util.comparators.SchemaElementComparator;
 
 /**
  * It contains all the statistics obtained during the inference an Schema 
@@ -41,30 +45,30 @@ public class Statistics {
 	/**
 	 * It counts how many times a valid root element occurs, it means, in how many documents a suitable root is the chosen root.
 	 */
-	private Map<SchemaElement,Integer> rootElementOccurrences;
+	private SortedMap<SchemaElement,Integer> rootElementOccurrences;
 	/**
 	 * It stores the information concerning the complex types.
 	 */
-	private Map<ComplexType, ComplexTypeStatisticsEntry> complexTypeInfo;
+	private SortedMap<ComplexType, ComplexTypeStatisticsEntry> complexTypeInfo;
 	/**
 	 * It stores info of each element present at a concrete path.
 	 */
-	private Map<String, BasicStatisticsEntry> elementAtPathInfo;
+	private SortedMap<String, BasicStatisticsEntry> elementAtPathInfo;
 	/**
 	 * It stores info of each attribute present at a concrete path.
 	 */
-	private Map<String, BasicStatisticsEntry> attributeOccurrencesAtPathInfo;
+	private SortedMap<String, BasicStatisticsEntry> attributeOccurrencesAtPathInfo;
 	/**
 	 * It stores info of the values at each element at a concrete path.
 	 */
-	private Table<String,String,BasicStatisticsEntry> valuesAtPathInfo;
+	private RowSortedTable<String,String,BasicStatisticsEntry> valuesAtPathInfo;
 	/**
 	 * It stores the information of the depth of the nodes. 
 	 * Rows are document indexes, columns are element depths indexes (it does not matter anything of the element but its depth) 
 	 * and values are depths.
 	 * They are used to calculate the desired statistic parameters.
 	 */
-	private Table<Integer,Long,Long> depthsInfo;
+	private RowSortedTable<Integer,Long,Long> depthsInfo;
 	
 	/**
 	 * It stores the information of the width of the nodes. 
@@ -72,7 +76,7 @@ public class Statistics {
 	 * and values are widths.
 	 * They are used to calculate the desired statistic parameters.
 	 */
-	private Table<Integer,Long,Long> widthsInfo;
+	private RowSortedTable<Integer,Long,Long> widthsInfo;
 	
 	/**
 	 * Number of input documents
@@ -82,7 +86,7 @@ public class Statistics {
 	/**
 	 * Statistics over numeric values at paths.
 	 */
-	private Map<String,BasicStatisticsEntry> statisticsOfNumericValuesAtPath;
+	private SortedMap<String,BasicStatisticsEntry> statisticsOfNumericValuesAtPath;
 	
 	/**
 	 * Last hash value of valuesAtPathInfo, it allows to know whether it has been modified in order to 
@@ -118,13 +122,13 @@ public class Statistics {
 	 */
 	public Statistics(int inputDocumentsCount){
 		this.inputDocumentsCount=inputDocumentsCount;
-		rootElementOccurrences=new HashMap<SchemaElement, Integer>();
-		elementAtPathInfo=new HashMap<String, BasicStatisticsEntry>();
-		complexTypeInfo=new HashMap<ComplexType, ComplexTypeStatisticsEntry>();
-		attributeOccurrencesAtPathInfo=new HashMap<String, BasicStatisticsEntry>();
-		valuesAtPathInfo=HashBasedTable.create();
-		depthsInfo=HashBasedTable.create();
-		widthsInfo=HashBasedTable.create();
+		rootElementOccurrences=new TreeMap<SchemaElement, Integer>(new SchemaElementComparator());
+		elementAtPathInfo=new TreeMap<String, BasicStatisticsEntry>();
+		complexTypeInfo=new TreeMap<ComplexType, ComplexTypeStatisticsEntry>(new ComplexTypeComparator());
+		attributeOccurrencesAtPathInfo=new TreeMap<String, BasicStatisticsEntry>();
+		valuesAtPathInfo=TreeBasedTable.create();
+		depthsInfo=TreeBasedTable.create();
+		widthsInfo=TreeBasedTable.create();
 		statisticsOfNumericValuesAtPath=null;
 		valuesAtPathInfoLastHash=valuesAtPathInfo.hashCode();
 	}
@@ -136,13 +140,18 @@ public class Statistics {
 	 */
 	public Statistics(Statistics statistics) {
 		this.inputDocumentsCount=statistics.inputDocumentsCount;
-		rootElementOccurrences=new HashMap<SchemaElement, Integer>(statistics.rootElementOccurrences);
-		elementAtPathInfo=new HashMap<String, BasicStatisticsEntry>(statistics.elementAtPathInfo);
-		complexTypeInfo=new HashMap<ComplexType, ComplexTypeStatisticsEntry>(statistics.complexTypeInfo);
-		attributeOccurrencesAtPathInfo=new HashMap<String, BasicStatisticsEntry>(statistics.attributeOccurrencesAtPathInfo);
-		valuesAtPathInfo=HashBasedTable.create(statistics.valuesAtPathInfo);
-		depthsInfo=HashBasedTable.create(statistics.depthsInfo);
-		widthsInfo=HashBasedTable.create(statistics.widthsInfo);
+		rootElementOccurrences=new TreeMap<SchemaElement, Integer>(new SchemaElementComparator());
+		rootElementOccurrences.putAll(statistics.rootElementOccurrences);
+		elementAtPathInfo=new TreeMap<String, BasicStatisticsEntry>(statistics.elementAtPathInfo);
+		complexTypeInfo=new TreeMap<ComplexType, ComplexTypeStatisticsEntry>(new ComplexTypeComparator());
+		complexTypeInfo.putAll(statistics.complexTypeInfo);
+		attributeOccurrencesAtPathInfo=new TreeMap<String, BasicStatisticsEntry>(statistics.attributeOccurrencesAtPathInfo);
+		valuesAtPathInfo=TreeBasedTable.create();
+		valuesAtPathInfo.putAll(statistics.valuesAtPathInfo);
+		depthsInfo=TreeBasedTable.create();
+		depthsInfo.putAll(statistics.depthsInfo);
+		widthsInfo=TreeBasedTable.create();
+		widthsInfo.putAll(statistics.widthsInfo);
 		statisticsOfNumericValuesAtPath=statistics.statisticsOfNumericValuesAtPath;
 		valuesAtPathInfoLastHash=statistics.valuesAtPathInfoLastHash;
 	}
@@ -373,7 +382,7 @@ public class Statistics {
 	public Map<String, BasicStatisticsEntry> getStatisticsOfNumericValuesAtPath() {
 		if(statisticsOfNumericValuesAtPath==null || valuesAtPathInfo.hashCode()!=valuesAtPathInfoLastHash){
 			if(statisticsOfNumericValuesAtPath==null){
-				statisticsOfNumericValuesAtPath=new HashMap<>();
+				statisticsOfNumericValuesAtPath=new TreeMap<>();
 			} else {
 				statisticsOfNumericValuesAtPath.clear();
 			}
@@ -405,13 +414,18 @@ public class Statistics {
 	 * (by calling {@link ComplexTypeStatisticsEntry#rehashDataStructures()} on it). 
 	 */
 	public void rehashDataStructures(){
-		rootElementOccurrences=new HashMap<>(rootElementOccurrences);
-		elementAtPathInfo=new HashMap<>(elementAtPathInfo);
-		attributeOccurrencesAtPathInfo=new HashMap<>(attributeOccurrencesAtPathInfo);
-		valuesAtPathInfo=HashBasedTable.create(valuesAtPathInfo);
+		rootElementOccurrences=new TreeMap<>(new SchemaElementComparator());
+		rootElementOccurrences.putAll(rootElementOccurrences);
+		elementAtPathInfo=new TreeMap<>(elementAtPathInfo);
+		attributeOccurrencesAtPathInfo=new TreeMap<>(attributeOccurrencesAtPathInfo);
+		RowSortedTable<String,String,BasicStatisticsEntry> oldValuesAtPathInfo= valuesAtPathInfo;
+		valuesAtPathInfo=TreeBasedTable.create();
+		valuesAtPathInfo.putAll(oldValuesAtPathInfo);
 		if(statisticsOfNumericValuesAtPath!=null && !statisticsOfNumericValuesAtPath.isEmpty())
-			statisticsOfNumericValuesAtPath=new HashMap<>(statisticsOfNumericValuesAtPath);
-		complexTypeInfo=new HashMap<>(complexTypeInfo);
+			statisticsOfNumericValuesAtPath=new TreeMap<>(statisticsOfNumericValuesAtPath);
+		SortedMap<ComplexType,ComplexTypeStatisticsEntry> oldComplexTypeInfo= complexTypeInfo;
+		complexTypeInfo=new TreeMap<>(new ComplexTypeComparator());
+		complexTypeInfo.putAll(oldComplexTypeInfo);
 		for(ComplexType complexType: complexTypeInfo.keySet()){
 			complexTypeInfo.get(complexType).rehashDataStructures();
 		}

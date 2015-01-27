@@ -15,5 +15,7 @@ limitations under the License.
 */
 /**
  * Provides interfaces to the merger module.
+ * 
+ * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
 package es.upm.dit.xsdinferencer.merge;

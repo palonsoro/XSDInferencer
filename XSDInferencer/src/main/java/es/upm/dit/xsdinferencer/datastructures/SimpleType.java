@@ -34,6 +34,10 @@ import es.upm.dit.xsdinferencer.XSDInferenceConfiguration;
  */
 public class SimpleType implements Iterable<String> {
 	
+	//Regular expressions used to check whether individual values belong to the pointed types.
+	private static final String BUILTIN_REGEX_XSINTEGER = "^(\\+|\\-)?[0-9]+$";
+	private static final String BUILTIN_REGEX_XSDECIMAL = "^(\\+|\\-)?[0-9]+(\\.[0-9]+)?$";
+	
 	/**
 	 * Name of simpleType.
 	 * It should be of the form:
@@ -374,6 +378,54 @@ public class SimpleType implements Iterable<String> {
 	 */
 	public List<String> getKnownValuesUnmodifiableList(){
 		return Collections.unmodifiableList(knownValues);
+	}
+	
+	/**
+	 * To check whether one of the known values would be a valid xs:integer value.
+	 * @return true if at least one known value would be a valid xs:integer value.
+	 */
+	public boolean containsIntegerValues(){
+		for(String knownValue:knownValues){
+			if(knownValue.trim().matches(BUILTIN_REGEX_XSINTEGER)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * To check whether one of the known values would be a valid xs:decimal value but not a valid xs:integer value.
+	 * @return true if at least one known value would be a valid xs:decimal value but not a valid xs:integer value.
+	 */
+	public boolean containsDecimalNonIntegerValues(){
+		for(String knownValue:knownValues){
+			if(knownValue.trim().matches(BUILTIN_REGEX_XSDECIMAL)&&!knownValue.matches(BUILTIN_REGEX_XSINTEGER)){
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * It returns true if there is any numeric known value.
+	 * @return true if there is any numeric known value.
+	 */
+	public boolean containsNumericValues(){
+		return containsIntegerValues() || containsDecimalNonIntegerValues();
+	}
+	
+	/**
+	 * It returns "true" or "false" if either "true"
+	 * @return
+	 */
+	public boolean containsTrueFalseValues(){
+		for(String knownValue:knownValues){
+			String knownValueTrim = knownValue.trim();
+			if (knownValueTrim.equals("true") || knownValueTrim.equals("false")){
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

@@ -20,7 +20,7 @@ package es.upm.dit.xsdinferencer.datastructures;
  * that has a name, a namespace and a type, it does not matter if it is a simple or a complex type).
  * @author Pablo Alonso Rodriguez (Center for Open Middleware)
  */
-public interface SchemaNode {
+public interface SchemaNode{
 	/**
 	 * 
 	 * @return The name of the node
